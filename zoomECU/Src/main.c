@@ -22,6 +22,7 @@
 #endif
 
 #include "stm32g4xx_ll_gpio.c"
+#include "SystemClock.h"
 
 #define LED_Pin LL_GPIO_PIN_5
 #define LED_GPIO_Port GPIOA
@@ -34,6 +35,8 @@ uint32_t LED_status;
 
 int main(void)
 {
+	SystemClockInit();
+
 	LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
 	LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_PWR);
 

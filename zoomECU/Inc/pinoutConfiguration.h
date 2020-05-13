@@ -1,19 +1,26 @@
 /**
  ******************************************************************************
- * File:                    GPIO.c
+ * File:                    pinoutConfiguration.h
  * Author:                  David Tolsma
- * Breif Description:       Initialization and Control for GPIO pins
+ * Breif Description:       List of defines for the board pinout
  ******************************************************************************
  * Long Description:
  *
- * Provides low-level initialization and configuration for GPIO pins for the 
- * zoomECU board. This module utalizes the STM32Cube Low-Level Drivers.
+ * Provides pin definitions for the GPIO pins on the zoomECU board.
  *
  ******************************************************************************
  */
 
 
-//void GpioInit(void){
+#ifndef pinoutConfiguration_h
+#define pinoutConfiguration_h
 
 
-//}
+
+
+
+
+
+
+
+#endif //pinoutConfiguraton_h
