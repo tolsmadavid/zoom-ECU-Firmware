@@ -1,8 +1,38 @@
+/**
+ ******************************************************************************
+ * File:                    SystemClock.c
+ * Author:                  David Tolsma
+ * Breif Description:       Initialization for system core clocks
+ ******************************************************************************
+ * Long Description:
+ *
+ * Initialization for system core clocks
+ *
+ ******************************************************************************
+ */
+
 
 #include "stm32g4xx.h"
+#include "SystemClock.h"
 
+
+/**
+ ******************************************************************************
+ * File:                    SystemClock.c
+ * Function:                void SystemClockInit(void)
+ * Author:                  David Tolsma
+ * Breif Description:       Initialization for system core clocks
+ ******************************************************************************
+ * Long Description:
+ *
+ * Initialization for system core clocks
+ *
+ ******************************************************************************
+ */
 
 void SystemClockInit(void){
+
+// Set up all external oscilators
 
     // Enable clock to PWR module
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_PWREN);
@@ -10,6 +40,9 @@ void SystemClockInit(void){
     // For core clocks above 80 Mhz, the main voltage regulator must be set
     // to boost mode. This is done by clearing the PWR_CR5 register, bit 8.
     CLEAR_BIT(PWR->CR5, PWR_CR5_R1MODE);
+
+    // Increase the number of wait states for the flash controller for higher speeds
+    MODIFY_REG(FLASH->ACR, FLASH_ACR_LATENCY, FLASH_ACR_LATENCY_4WS);
 
     // Enable HSE oscilator
     SET_BIT(RCC->CR, RCC_CR_HSEON);
@@ -66,6 +99,8 @@ void SystemClockInit(void){
     // Wait untill system clock is ready (ensuring that the hardware reports PLL as clock source)
     while(READ_BIT(RCC->CFGR, RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
 
+    // Enable use access to the FPU
+    //SCB->CPACR |= ((3UL << (10*2))|(3UL << (11*2)));  /* set CP10 and CP11 Full Access */
 }  
 
 

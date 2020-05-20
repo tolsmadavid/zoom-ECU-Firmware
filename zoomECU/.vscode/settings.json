@@ -1,5 +1,6 @@
 {
     "files.associations": {
         "stm32g4xx.h": "c"
-    }
+    },
+    "C_Cpp.dimInactiveRegions": false
 }
