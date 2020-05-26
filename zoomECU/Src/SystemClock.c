@@ -1,36 +1,39 @@
-/**
- ******************************************************************************
+/******************************************************************************
  * File:                    SystemClock.c
  * Author:                  David Tolsma
+ * Date Modified:           05/25/2020
  * Breif Description:       Initialization for system core clocks
- ******************************************************************************
- * Long Description:
- *
- * Initialization for system core clocks
- *
- ******************************************************************************
- */
+ *****************************************************************************/
+
+
+
 
 
 #include "stm32g4xx.h"
 #include "SystemClock.h"
 
 
-/**
- ******************************************************************************
- * File:                    SystemClock.c
- * Function:                void SystemClockInit(void)
- * Author:                  David Tolsma
- * Breif Description:       Initialization for system core clocks
- ******************************************************************************
- * Long Description:
- *
- * Initialization for system core clocks
- *
- ******************************************************************************
- */
 
-void SystemClockInit(void){
+
+#define SYSTEM_CORE_CLOCK 170000000
+
+// Deviates from standard style conventions for compatibility with existing libraries
+uint32_t SystemCoreClock = SYSTEM_CORE_CLOCK;
+
+
+
+
+
+/**
+******************************************************************************
+*   File:                    SystemClock.c
+*   Function:                void SystemClock_Init(void)
+*   Author:                  David Tolsma
+*   Breif Description:       Initialization for system core clocks
+******************************************************************************
+**/
+
+void SystemClock_Init(void){
 
 // Set up all external oscilators
 
@@ -100,7 +103,12 @@ void SystemClockInit(void){
     while(READ_BIT(RCC->CFGR, RCC_CFGR_SWS) != RCC_CFGR_SWS_PLL);
 
     // Enable use access to the FPU
-    //SCB->CPACR |= ((3UL << (10*2))|(3UL << (11*2)));  /* set CP10 and CP11 Full Access */
+    SCB->CPACR |= ((3UL << (10*2))|(3UL << (11*2)));  /* set CP10 and CP11 Full Access */
+
+    // Set up SysTick timer for 1ms interupts
+    SysTick_Config(SystemCoreClock/1000);
 }  
+
+
 
 

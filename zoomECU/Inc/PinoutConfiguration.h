@@ -1,22 +1,16 @@
-/**
- ******************************************************************************
- * File:                    pinoutConfiguration.h
- * Author:                  David Tolsma
- * Breif Description:       List of defines for the board pinout
- ******************************************************************************
- * Long Description:
- *
- * Provides pin definitions for the GPIO pins on the zoomECU board.
- *
- ******************************************************************************
- */
-
-
+/******************************************************************************
+* File:                    PinoutConfiguration.h
+* Author:                  David Tolsma
+* Date Modified:           05/25/2020
+* Breif Description:       Pinout Definitions for zoomECU
+******************************************************************************/
 #ifndef pinoutConfiguration_h
 #define pinoutConfiguration_h
 
-
-// Definitions for GPIO PINs
+/******************************************************************************
+* Defines
+******************************************************************************/
+// GPIO Pinout
 
 // Low Side Drivers
 #define LSD_1_PIN (0x1UL << 9) 
@@ -141,9 +135,11 @@
 #define USB_DP_PORT GPIOA
 #define USB_DM_PORT GPIOA
 
+// Development Board LED
+#define DEV_LED_PORT GPIOA
+#define DEV_LED_PIN (0x1UL << 5)
 
-
-
+/*****************************************************************************/
 
 
 #endif //pinoutConfiguraton_h
