@@ -1,11 +1,11 @@
 /******************************************************************************
-* File:                    Tim.h
+* File:                    TriggerDecoder.h
 * Author:                  David Tolsma
 * Date Modified:           05/25/2020
-* Breif Description:       Initialization and control of system timers
+* Breif Description:       Brief Description of Module
 ******************************************************************************/
-#ifndef TIM_H
-#define TIM_H
+#ifndef TRIGGERDECODER_H
+#define TRIGGERDECODER_H
 
 /******************************************************************************
 * Includes
@@ -20,12 +20,12 @@
 /******************************************************************************
 * Public Function Prototypes
 ******************************************************************************/
-
-void Tim_Timer2Init(void);
+void TriggerDecoder_Init(void);
+void TriggerDecoderTask(void * pvParameters);
 
 /******************************************************************************
 * Public Variables
 ******************************************************************************/
 
 
-#endif // ifdef TIM_H
+#endif // ifdef TRIGGERDECODER_H

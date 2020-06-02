@@ -1,14 +1,11 @@
 /******************************************************************************
-* File:                    Tim.c
+* File:                    IgnitionControl.c
 * Author:                  David Tolsma
 * Date Modified:           05/25/2020
-* Breif Description:       Initialization and Control for timers
+* Breif Description:       Brief Description of Module
 *******************************************************************************
 * Includes
 ******************************************************************************/
-
-#include "FreeRTOSConfig.h"
-
 #include "stm32g4xx.h"
 #include "stm32g474xx.h"
 
@@ -23,13 +20,26 @@
 
 
 /******************************************************************************
-* Private Function Prototypes
+* Private Function Prototypes (static)
 ******************************************************************************/
 
 
 /******************************************************************************
-* Private Variables
+* Private Variables (static)
 ******************************************************************************/
+enum scheduleStatusStates {OFF, PENDING, RUNNING}; //The 3 statuses that a schedule can have
+
+struct Schedule {
+  	volatile uint32_t startTime;
+  	volatile uint32_t endTime;
+
+	void (*startCallback)(); //Start Callback function for schedule
+  	void (*endCallback)(); //Start Callback function for schedule
+
+  	volatile enum scheduleStatusStates status;
+};
+
+struct Schedule testSchedule;
 
 
 /******************************************************************************
@@ -38,34 +48,34 @@
 
 
 /******************************************************************************
-* void TimTimer2Init(void)
-* Sets up timer 2 to act as a global microsecond timer.
+* void IgnitionControl_EventCreationTask(void)
+* Creates and schedules all ignition events
 * David Tolsma, 05/25/2020
 ******************************************************************************/
-void Tim_Timer2Init(void){
+/*
+void IgnitionControl_EventCreationTask(void){
 
-    // Enable clock to timer
-    SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_TIM2EN);
+    while(1){
+        // Calculate next pair of ignition events
+        IgnitionControl_calcNextIgnitionAngle(angle);
+        IgnitionControl_calcDwellTime(timeInUS);
+        IgnitionControl_calcTimeToAngle(timeInUS);
+        timeToStart = timeToEnd - timeToDwell;
 
-    // Enable timer 2
-    SET_BIT(TIM2->CR1, TIM_CR1_CEN);
+        // Schedule first event
+        IgnitionControl_scheduleEvent();
+        state = pending;
+        pendOnIRQ;
 
-    // Set prescaler, timer frequency = input clock / prescaler +1
-    // For a 170 Mhz core, and a 1 Mhz timer, we need a prescaler value
-    // of 170 - 1 = 169.
-    WRITE_REG(TIM2->PSC, 169);
+        // Schedule next event
+        IgnitionControl_scheduleEvent();
+        state = running;
+        pendOnIRQ;
 
-    // Set auto-reload register (when the timer rolls back to zero)
-    // Resets once per microsecond
-    WRITE_REG(TIM2->ARR, 1000000);
-
-    // Enable interupts from timer
-    WRITE_REG(TIM2->DIER, TIM_DIER_UIE);
-
-    // Enable trigger events from timer
-    WRITE_REG(TIM2->EGR, TIM_EGR_TG);
-
-    // Set interupt priority to account for RTOS system call
-    NVIC_SetPriority(TIM2_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
+        // Ignition events complete
+        state = off;
+    }
 }
+*/
+
 /*****************************************************************************/
