@@ -158,27 +158,6 @@ void IgnitionControl_EventCreationTask(void){
             SET_BIT(bitsToClearOnExit, IGN_SCH_4);
             //repeat above
         }   
-
-
-
-        // Calculate next pair of ignition events
-        IgnitionControl_calcNextIgnitionAngle(angle);
-        IgnitionControl_calcDwellTime(timeInUS);
-        IgnitionControl_calcTimeToAngle(timeInUS);
-        timeToStart = timeToEnd - timeToDwell;
-
-        // Schedule first event
-        IgnitionControl_scheduleEvent();
-        state = pending;
-        pendOnIRQ;
-
-        // Schedule next event
-        IgnitionControl_scheduleEvent();
-        state = running;
-        pendOnIRQ;
-
-        // Ignition events complete
-        state = off;
     }
 }
 
