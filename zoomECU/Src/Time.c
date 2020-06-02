@@ -65,7 +65,7 @@ void Time_Timer2Init(void){
     //WRITE_REG(TIM2->DIER, TIM_DIER_UIE);
 
     // Enable interupts from timer compare registers 1-4
-    //WRITE_REG(TIM2->DIER, TIM_DIER_CC1IE);
+    WRITE_REG(TIM2->DIER, TIM_DIER_CC1IE);
     //WRITE_REG(TIM2->DIER, TIM_DIER_CC2IE);
     //WRITE_REG(TIM2->DIER, TIM_DIER_CC3IE);
     //WRITE_REG(TIM2->DIER, TIM_DIER_CC4IE);
@@ -85,56 +85,5 @@ void Time_Timer2Init(void){
 ******************************************************************************/
 uint32_t Time_GetTimeuSeconds(void){
 	return TIM2->CNT;
-}
-/*****************************************************************************/
-
-/******************************************************************************
-* void TIM2_IRQHandler(void)
-* Handler for timer 2, increments an upper 32 bit integer to count the number 
-* of overflows of timer 2. Timer 2 overflows approximatly every 71 minutes.
-* David Tolsma, 05/25/2020
-******************************************************************************/
-void TIM2_IRQHandler(void){
-    uint32_t irqStatus;
-    irqStatus = TIM2->SR;
-
-    //Check for count compare interupts
-    if(irqStatus & TIM_SR_CC1IF){ 
-        CLEAR_BIT(TIM2->SR, TIM_SR_CC1IF);
-        /*switch(testSchedule.status){
-            case PENDING:{
-                testSchedule.startCallback();
-                testSchedule.status = RUNNING;
-                TIM2->CCR1 = testSchedule.endTime;
-                break;
-            }
-            case RUNNING:{
-                testSchedule.endCallback();
-                testSchedule.status = PENDING;
-                TIM2->CCR1 = testSchedule.startTime;
-                break;
-            }
-            case OFF:{
-                while(1); //should never be in IRQ with no schedule
-                break;
-            }
-        } */
-    }
-    if (irqStatus & TIM_SR_CC2IF){
-        CLEAR_BIT(TIM2->SR, TIM_SR_CC2IF);
-
-    }
-    if (irqStatus & TIM_SR_CC3IF){
-        CLEAR_BIT(TIM2->SR, TIM_SR_CC3IF);
-
-    }
-    if (irqStatus & TIM_SR_CC4IF){
-        CLEAR_BIT(TIM2->SR, TIM_SR_CC4IF);
-
-    }
-    // Check for update interupts
-    if (irqStatus & TIM_SR_UIF){
-        CLEAR_BIT(TIM2->SR, TIM_SR_UIF);
-    }
 }
 /*****************************************************************************/

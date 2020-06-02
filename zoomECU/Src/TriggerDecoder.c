@@ -73,8 +73,9 @@ struct triggerStatus_t triggerStatus = {
     .primaryEventAngles = {105, 175, 285, 355, 465, 535, 635, 715}
 };
 
-
+TaskHandle_t TriggerDecoderTaskHandle = NULL;
 QueueHandle_t triggerEventQHandle;
+SemaphoreHandle_t triggerStatusMutexHandle;
 
 /******************************************************************************
 * Function Code
@@ -114,17 +115,32 @@ void TriggerDecoder_Init(void){
     NVIC_SetPriority(EXTI1_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
     NVIC_SetPriority(EXTI3_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
 
-
+    // Create the trigger decoder task
+    xTaskCreate( 	TriggerDecoderTask,        	    /* Function that implements the task. */
+	                    "triggerDecoderTask",       /* Text name for the task. */
+	                    100,      			        /* Stack size in words, not bytes. */
+	                    ( void * ) 0,    	        /* Parameter passed into the task. */
+	                    1,					        /* Priority at which the task is created. */
+	                    &TriggerDecoderTaskHandle	/* Used to pass out the created task's handle. */
+	);
 }
 /*****************************************************************************/
 
+
+
 /******************************************************************************
-* void TriggerDecoder_Init(void)
-* Initialize the trigger module
+* void TriggerDecoder_Task(void)
+* Pends on an event, then processes the event and updates the trigger
+* status structure.
 * David Tolsma, 05/25/2020
 ******************************************************************************/
-void TriggerDecoderTask(void * pvParameters){
+void TriggerDecoder_Task(void * pvParameters){
+    // Create queue for events to be passed from ISRs to this function
     triggerEventQHandle = xQueueCreate( 10, sizeof( struct triggerEvent_t) );
+    
+    // Create mutual exclusion for shared triggerStatus struct
+    triggerStatusMutexHandle = xSemaphoreCreateMutex();
+    
     struct triggerEvent_t eventBeingProcessed;
 
     // Enable interupt
@@ -138,6 +154,9 @@ void TriggerDecoderTask(void * pvParameters){
 					  &eventBeingProcessed,
 					  portMAX_DELAY);
 
+        // Grab mutex for the triggerStatus structure, then return it at the end of the function.
+        xSemaphoreTake(triggerStatusMutexHandle, portMAX_DELAY);
+
         if((eventBeingProcessed.eventID == PRIMARY_RISE) || (eventBeingProcessed.eventID == PRIMARY_FALL)){
             // Increment event number (and set to zero on overflow)
             if( triggerStatus.lastPrimaryEventNumber < 7){
@@ -145,14 +164,9 @@ void TriggerDecoderTask(void * pvParameters){
             }
             else if (triggerStatus.lastPrimaryEventNumber == 7){
                 triggerStatus.lastPrimaryEventNumber = 0;
-                gpioOn();
             }
             else{
                 while(1); // Error trap, should never get here.
-            }
-
-            if(triggerStatus.lastPrimaryEventNumber == 1){
-            	gpioOff();
             }
 
             // Shift log, and add new event to log of past events (implemented without a for loop for speed)
@@ -268,14 +282,278 @@ void TriggerDecoderTask(void * pvParameters){
         else{
             while(1); // we should never get here
         }
+
+        // Return mutex for the triggerStatus structure.
+        xSemaphoreGive(triggerStatusMutexHandle);
 	}
 }
 /*****************************************************************************/
 
 
 
+/******************************************************************************
+* float TriggerDecoder_GetRPM(void)
+* Returns the current rpm estimate
+* David Tolsma, 05/25/2020
+******************************************************************************/
+float TriggerDecoder_GetRPM(void){
+    // We determine the current RPM by looking at the time it took to cover 
+    // the last 4 primary trigger events
+    float newestAngle;
+    float oldestAngle;
+    float deltaAngle;
 
-// CAM is the secondary trigger
+    int32_t newestAngleTime;
+    int32_t oldestAngleTime;
+    int32_t deltaTime;
+
+    float rpm;
+
+    // Grab mutex for the triggerStatus structure, then return it at the end of the function.
+    xSemaphoreTake(triggerStatusMutexHandle, portMAX_DELAY);
+
+    // Get most recent angle
+    newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
+    // Get oldest angle
+    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    
+    // Determine delta degrees
+    // If the most recent primary trigger events do not span the 720* to 0* transition, then
+    // we can simply subtract the oldest angle from the newest angle.
+    // If the past events do span the 720* to 0* transition, then we know the angle between them
+    // is the angle between the oldest angle and 720* + the angle between 0* and the newest angle.
+    if(newestAngle > oldestAngle){
+        deltaAngle = newestAngle - oldestAngle;
+    }
+    else{
+        deltaAngle = (720 - oldestAngle) + newestAngle;
+    }
+    
+
+    // Get the time of the most recent primary event
+    newestAngleTime = triggerStatus.pastPrimaryEvents[3];
+    // Get time of the oldest primary event
+    oldestAngleTime = triggerStatus.pastPrimaryEvents[0];
+
+    // We no longer need access to the trigger status structure.
+    // Return mutex for the triggerStatus structure.
+    xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta time. This is overflow safe, as even if it spans the overflow of the uS timer
+    // beacuse the uS timer counts to 0xFFFF FFFF, subtraction in this way always results in the time
+    // between.
+    deltaTime = newestAngleTime - oldestAngleTime;
+
+
+    // Formula for converting to rpm is: 
+    // 
+    // Degree per microsecond:
+    // deltaAngle (degree) / deltaTime (uS);
+    //
+    // convert uS to seconds, then to minutes - degree per minute:
+    // deltaAngle (degree) / [ deltaTime (uS) * 1000000 * 60]
+    // 
+    // convert degrees to revolutions - revolutions per minute:
+    // deltaAngle (degree) / [ deltaTime (uS) * 1000000 * 60 * 360]
+    //
+    rpm = deltaAngle / (((float) deltaTime) * 1000000 * 60 * 360);
+    
+    return rpm;
+}
+/*****************************************************************************/
+
+
+
+/******************************************************************************
+* float TriggerDecoder_GetCurrentAngle(void)
+* Returns the current engine angle estimate
+* David Tolsma, 05/25/2020
+******************************************************************************/
+float TriggerDecoder_GetCurrentAngle(void){
+    
+    // We determine the current rotational velocity by looking at the time it
+    // took to cover  the last 4 primary trigger events
+    float newestAngle;
+    float oldestAngle;
+    float deltaAngle;
+
+    int32_t newestAngleTime;
+    int32_t oldestAngleTime;
+    int32_t deltaTime;
+
+    float degreesPerUS;
+    int32_t currentTime;
+    float currentAngle;
+
+    // Grab mutex for the triggerStatus structure, then return it at the end of the function.
+    xSemaphoreTake(triggerStatusMutexHandle, portMAX_DELAY);
+
+    // Get most recent angle
+    newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
+    // Get oldest angle
+    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    
+    // We no longer need access to the trigger status structure.
+    // Return mutex for the triggerStatus structure.
+    xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta degrees
+    // If the most recent primary trigger events do not span the 720* to 0* transition, then
+    // we can simply subtract the oldest angle from the newest angle.
+    // If the past events do span the 720* to 0* transition, then we know the angle between them
+    // is the angle between the oldest angle and 720* + the angle between 0* and the newest angle.
+    if(newestAngle > oldestAngle){
+        deltaAngle = newestAngle - oldestAngle;
+    }
+    else{
+        deltaAngle = (720 - oldestAngle) + newestAngle;
+    }
+
+    // We need to determine the degrees travled per microsecond:
+    degreesPerUS = deltaAngle / ((float) deltaTime);
+
+    // Get the most up to date time
+    currentTime = Time_GetTimeuSeconds();
+
+    // Determine current angle by:
+    // 1) subtracting the most recent event time from the current time to determine time since most recent event.
+    // 2) multiply that time by the degreesPerUS to determine how many degrees traveled since most recent event.
+    // 3) add that to the angle of the most recent event to determine current angle.
+    currentAngle = (((float)(currentTime - newestAngleTime)) * degreesPerUS) + newestAngle;
+
+    return currentAngle; 
+}
+
+/*****************************************************************************/
+
+
+
+/******************************************************************************
+* float TriggerDecoder_GetUsPerDegree(void)
+* Returns the number of microseconds needed to traverse one degree
+* David Tolsma, 05/25/2020
+******************************************************************************/
+float TriggerDecoder_GetUsPerDegree(void){
+    
+    // We determine the current rotational velocity by looking at the time it
+    // took to cover  the last 4 primary trigger events
+    float newestAngle;
+    float oldestAngle;
+    float deltaAngle;
+
+    int32_t newestAngleTime;
+    int32_t oldestAngleTime;
+    int32_t deltaTime;
+
+    float uSPerDegree;
+
+    // Grab mutex for the triggerStatus structure, then return it at the end of the function.
+    xSemaphoreTake(triggerStatusMutexHandle, portMAX_DELAY);
+
+    // Get most recent angle
+    newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
+    // Get oldest angle
+    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    
+    // We no longer need access to the trigger status structure.
+    // Return mutex for the triggerStatus structure.
+    xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta degrees
+    // If the most recent primary trigger events do not span the 720* to 0* transition, then
+    // we can simply subtract the oldest angle from the newest angle.
+    // If the past events do span the 720* to 0* transition, then we know the angle between them
+    // is the angle between the oldest angle and 720* + the angle between 0* and the newest angle.
+    if(newestAngle > oldestAngle){
+        deltaAngle = newestAngle - oldestAngle;
+    }
+    else{
+        deltaAngle = (720 - oldestAngle) + newestAngle;
+    }
+
+    // We need to determine the nuber of microseonds per degree.
+    uSPerDegree = ((float) deltaTime) / deltaAngle;
+    return uSPerDegree;
+}
+
+/*****************************************************************************/
+
+
+
+/******************************************************************************
+* float TriggerDecoder_GetDegreePerUs(void)
+* Returns the number of degrees traveled per microsecond
+* David Tolsma, 05/25/2020
+******************************************************************************/
+float TriggerDecoder_GetDegreePerUs(void){
+    
+    // We determine the current rotational velocity by looking at the time it
+    // took to cover  the last 4 primary trigger events
+    float newestAngle;
+    float oldestAngle;
+    float deltaAngle;
+
+    int32_t newestAngleTime;
+    int32_t oldestAngleTime;
+    int32_t deltaTime;
+
+    float degreePerUs;
+
+    // Grab mutex for the triggerStatus structure, then return it at the end of the function.
+    xSemaphoreTake(triggerStatusMutexHandle, portMAX_DELAY);
+
+    // Get most recent angle
+    newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
+    // Get oldest angle
+    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    
+    // We no longer need access to the trigger status structure.
+    // Return mutex for the triggerStatus structure.
+    xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta degrees
+    // If the most recent primary trigger events do not span the 720* to 0* transition, then
+    // we can simply subtract the oldest angle from the newest angle.
+    // If the past events do span the 720* to 0* transition, then we know the angle between them
+    // is the angle between the oldest angle and 720* + the angle between 0* and the newest angle.
+    if(newestAngle > oldestAngle){
+        deltaAngle = newestAngle - oldestAngle;
+    }
+    else{
+        deltaAngle = (720 - oldestAngle) + newestAngle;
+    }
+
+    // We need to determine the nuber of microseonds per degree.
+    degreePerUs = deltaAngle / ((float) deltaTime);
+    return degreePerUs;
+}
+
+/*****************************************************************************/
+
+
+
+/******************************************************************************
+* uint32_t TriggerDecoder_GetSyncStatus(void)
+* Determines if trigger decoder is synced
+* David Tolsma, 05/25/2020
+******************************************************************************/
+float TriggerDecoder_GetSyncStatus(void){
+    return triggerStatus.hasSync;
+}
+/*****************************************************************************/
+
+
+
+/******************************************************************************
+* void EXTI1_IRQHandler(void)
+* ISR handler that looks for a change on,GPIO Port B, Pin 1. When it handles
+* the interupt, it records a time stamp and the trigger values and posts that
+* event to the TriggerDecoder_Task event queue.
+*
+* PA3 is the crank trigger input, and is designated as the primary trigger.
+*
+* David Tolsma, 05/25/2020
+******************************************************************************/
 void EXTI1_IRQHandler(void){
 
     BaseType_t xHigherPriorityTaskWoken;
@@ -315,8 +593,20 @@ void EXTI1_IRQHandler(void){
     // If we have woken a higer priority task, we should yield to that task
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
+/*****************************************************************************/
 
-// CRANK is the primary trigger
+
+
+/******************************************************************************
+* void EXTI3_IRQHandler(void)
+* ISR handler that looks for a change on,GPIO Port A, Pin 3. When it handles
+* the interupt, it records a time stamp and the trigger values and posts that
+* event to the TriggerDecoder_Task event queue.
+*
+* PA3 is the crank trigger input, and is designated as the primary trigger.
+*
+* David Tolsma, 05/25/2020
+******************************************************************************/
 void EXTI3_IRQHandler(void){
     BaseType_t xHigherPriorityTaskWoken;
     struct triggerEvent_t triggerEvent;
@@ -355,3 +645,4 @@ void EXTI3_IRQHandler(void){
     // If we have woken a higer priority task, we should yield to that task
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
+/*****************************************************************************/

@@ -20,8 +20,55 @@
 /******************************************************************************
 * Public Function Prototypes
 ******************************************************************************/
-void TriggerDecoder_Init(void);
-void TriggerDecoderTask(void * pvParameters);
+    /******************************************************************************
+    * void TriggerDecoder_Init(void)
+    * Initialize the trigger module
+    * David Tolsma, 05/25/2020
+    ******************************************************************************/
+    void TriggerDecoder_Init(void);
+
+    /******************************************************************************
+    * void TriggerDecoder_Task(void)
+    * Pends on an event, then processes the event and updates the trigger
+    * status structure.
+    * David Tolsma, 05/25/2020
+    ******************************************************************************/
+    void TriggerDecoderTask(void * pvParameters);
+
+    /******************************************************************************
+    * float TriggerDecoder_GetRPM(void)
+    * Returns the current rpm estimate
+    * David Tolsma, 05/25/2020
+    ******************************************************************************/
+    float TriggerDecoder_GetRPM(void);
+
+    /******************************************************************************
+    * float TriggerDecoder_GetCurrentAngle(void)
+    * Returns the current engine angle estimate
+    * David Tolsma, 05/25/2020
+    ******************************************************************************/
+    float TriggerDecoder_GetCurrentAngle(void);
+
+    /******************************************************************************
+    * float TriggerDecoder_GetuSPerDegree(void)
+    * Returns the number of microseconds needed to traverse one degree
+    * David Tolsma, 05/25/2020
+    ******************************************************************************/
+    float TriggerDecoder_GetUsPerDegree(void);
+    
+    /******************************************************************************
+    * float TriggerDecoder_GetDegreePerUs(void)
+    * Returns the number of microseconds needed to traverse one degree
+    * David Tolsma, 05/25/2020
+    ******************************************************************************/
+    float TriggerDecoder_GetDegreePerUs(void);
+
+    /******************************************************************************
+    * uint32_t TriggerDecoder_GetSyncStatus(void)
+    * Determines if trigger decoder is synced
+    * David Tolsma, 05/25/2020
+    ******************************************************************************/
+    float TriggerDecoder_GetSyncStatus(void);
 
 /******************************************************************************
 * Public Variables
