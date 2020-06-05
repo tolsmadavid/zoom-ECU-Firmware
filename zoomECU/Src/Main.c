@@ -23,7 +23,6 @@
 #include <stdio.h>
 
 
-
 /******************************************************************************
 * Defines
 ******************************************************************************/
@@ -44,6 +43,8 @@ void myTimerCallback(TimerHandle_t myTimerHandle);
 ******************************************************************************/
 TaskHandle_t TestTaskHandle = NULL;
 TimerHandle_t myTimerHandle = NULL;
+
+uint32_t angle;
 
 /******************************************************************************
 * Function Code
@@ -66,7 +67,7 @@ int main(void)
 
 	myTimerHandle =  xTimerCreate
                  	( "myTimer",
-                  	1000,
+                  	1,
                    	pdTRUE,
                    	(void *) 0,
                    	myTimerCallback );
@@ -89,7 +90,16 @@ int main(void)
 
 void myTimerCallback(TimerHandle_t myTimerHandle)
 {
-	printf("RPM: %f \n", TriggerDecoder_GetRPM());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
 }
 
 

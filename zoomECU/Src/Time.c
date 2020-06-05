@@ -65,7 +65,7 @@ void Time_Timer2Init(void){
     //WRITE_REG(TIM2->DIER, TIM_DIER_UIE);
 
     // Enable interupts from timer compare registers 1-4
-    WRITE_REG(TIM2->DIER, TIM_DIER_CC1IE);
+    //WRITE_REG(TIM2->DIER, TIM_DIER_CC1IE);
     //WRITE_REG(TIM2->DIER, TIM_DIER_CC2IE);
     //WRITE_REG(TIM2->DIER, TIM_DIER_CC3IE);
     //WRITE_REG(TIM2->DIER, TIM_DIER_CC4IE);

@@ -70,7 +70,7 @@ struct triggerStatus_t{
 
 struct triggerStatus_t triggerStatus = {
     .hasSync = 0,
-    .primaryEventAngles = {105, 175, 285, 355, 465, 535, 635, 715}
+    .primaryEventAngles = {105, 175, 285, 355, 465, 535, 645, 715}
 };
 
 TaskHandle_t TriggerDecoderTaskHandle = NULL;
@@ -314,7 +314,13 @@ float TriggerDecoder_GetRPM(void){
     // Get most recent angle
     newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
     // Get oldest angle
-    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    if(triggerStatus.lastPrimaryEventNumber >= 3){
+    	oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    }
+    else{
+    	oldestAngle = triggerStatus.primaryEventAngles[5 + (triggerStatus.lastPrimaryEventNumber)];
+    }
+
     
     // Determine delta degrees
     // If the most recent primary trigger events do not span the 720* to 0* transition, then
@@ -390,11 +396,26 @@ float TriggerDecoder_GetCurrentAngle(void){
     // Get most recent angle
     newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
     // Get oldest angle
-    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    if(triggerStatus.lastPrimaryEventNumber >= 3){
+    	oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    }
+    else{
+    	oldestAngle = triggerStatus.primaryEventAngles[5 + (triggerStatus.lastPrimaryEventNumber)];
+    }
+
+    // Get the time of the most recent primary event
+    newestAngleTime = triggerStatus.pastPrimaryEvents[0];
+    // Get time of the oldest primary event
+    oldestAngleTime = triggerStatus.pastPrimaryEvents[3];
     
     // We no longer need access to the trigger status structure.
     // Return mutex for the triggerStatus structure.
     xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta time. This is overflow safe, as even if it spans the overflow of the uS timer
+	// beacuse the uS timer counts to 0xFFFF FFFF, subtraction in this way always results in the time
+	// between.
+	deltaTime = newestAngleTime - oldestAngleTime;
 
     // Determine delta degrees
     // If the most recent primary trigger events do not span the 720* to 0* transition, then
@@ -419,6 +440,9 @@ float TriggerDecoder_GetCurrentAngle(void){
     // 2) multiply that time by the degreesPerUS to determine how many degrees traveled since most recent event.
     // 3) add that to the angle of the most recent event to determine current angle.
     currentAngle = (((float)(currentTime - newestAngleTime)) * degreesPerUS) + newestAngle;
+    if(currentAngle >= 720){
+    	currentAngle = currentAngle - 720;
+    }
 
     return currentAngle; 
 }
@@ -452,11 +476,26 @@ float TriggerDecoder_GetUsPerDegree(void){
     // Get most recent angle
     newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
     // Get oldest angle
-    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    if(triggerStatus.lastPrimaryEventNumber >= 3){
+    	oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    }
+    else{
+    	oldestAngle = triggerStatus.primaryEventAngles[5 + (triggerStatus.lastPrimaryEventNumber)];
+    }
+
+    // Get the time of the most recent primary event
+    newestAngleTime = triggerStatus.pastPrimaryEvents[0];
+    // Get time of the oldest primary event
+    oldestAngleTime = triggerStatus.pastPrimaryEvents[3];
     
     // We no longer need access to the trigger status structure.
     // Return mutex for the triggerStatus structure.
     xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta time. This is overflow safe, as even if it spans the overflow of the uS timer
+	// beacuse the uS timer counts to 0xFFFF FFFF, subtraction in this way always results in the time
+	// between.
+	deltaTime = newestAngleTime - oldestAngleTime;
 
     // Determine delta degrees
     // If the most recent primary trigger events do not span the 720* to 0* transition, then
@@ -504,11 +543,26 @@ float TriggerDecoder_GetDegreePerUs(void){
     // Get most recent angle
     newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
     // Get oldest angle
-    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    if(triggerStatus.lastPrimaryEventNumber >= 3){
+    	oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    }
+    else{
+    	oldestAngle = triggerStatus.primaryEventAngles[5 + (triggerStatus.lastPrimaryEventNumber)];
+    }
+
+    // Get the time of the most recent primary event
+    newestAngleTime = triggerStatus.pastPrimaryEvents[0];
+    // Get time of the oldest primary event
+    oldestAngleTime = triggerStatus.pastPrimaryEvents[3];
     
     // We no longer need access to the trigger status structure.
     // Return mutex for the triggerStatus structure.
     xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta time. This is overflow safe, as even if it spans the overflow of the uS timer
+	// beacuse the uS timer counts to 0xFFFF FFFF, subtraction in this way always results in the time
+	// between.
+	deltaTime = newestAngleTime - oldestAngleTime;
 
     // Determine delta degrees
     // If the most recent primary trigger events do not span the 720* to 0* transition, then
@@ -618,10 +672,12 @@ void EXTI3_IRQHandler(void){
     if(Gpio_ReadInputPin(CRANK_PORT, CRANK_PIN)){
         triggerEvent.eventID = PRIMARY_RISE;
         triggerEvent.primaryTriggerValue = PRIMARY_HIGH;
+        gpioOn();
     }
     else{
         triggerEvent.eventID = PRIMARY_FALL;
         triggerEvent.primaryTriggerValue = PRIMARY_LOW;
+        gpioOff();
     }
 
     // Log what the other trigger value currently is
