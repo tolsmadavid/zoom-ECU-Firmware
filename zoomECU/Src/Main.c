@@ -91,20 +91,10 @@ int main(void)
 void myTimerCallback(TimerHandle_t myTimerHandle)
 {
 	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
 }
 
 
 void TestTask(void * pvParameters){
-
 
 	while(1){
 
