@@ -33,7 +33,7 @@
     * status structure.
     * David Tolsma, 05/25/2020
     ******************************************************************************/
-    void TriggerDecoderTask(void * pvParameters);
+    void TriggerDecoder_Task(void * pvParameters);
 
     /******************************************************************************
     * float TriggerDecoder_GetRPM(void)

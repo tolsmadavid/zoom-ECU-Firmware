@@ -70,7 +70,7 @@ struct triggerStatus_t{
 
 struct triggerStatus_t triggerStatus = {
     .hasSync = 0,
-    .primaryEventAngles = {105, 175, 285, 355, 465, 535, 635, 715}
+    .primaryEventAngles = {105, 175, 285, 355, 465, 535, 645, 715}
 };
 
 TaskHandle_t TriggerDecoderTaskHandle = NULL;
@@ -116,13 +116,12 @@ void TriggerDecoder_Init(void){
     NVIC_SetPriority(EXTI3_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
 
     // Create the trigger decoder task
-    xTaskCreate( 	TriggerDecoderTask,        	    /* Function that implements the task. */
-	                    "triggerDecoderTask",       /* Text name for the task. */
-	                    100,      			        /* Stack size in words, not bytes. */
-	                    ( void * ) 0,    	        /* Parameter passed into the task. */
-	                    1,					        /* Priority at which the task is created. */
-	                    &TriggerDecoderTaskHandle	/* Used to pass out the created task's handle. */
-	);
+    xTaskCreate( 	TriggerDecoder_Task,        	    /* Function that implements the task. */
+					"triggerDecoderTask",       /* Text name for the task. */
+					100,      			        /* Stack size in words, not bytes. */
+					( void * ) 0,    	        /* Parameter passed into the task. */
+					1,					        /* Priority at which the task is created. */
+					&TriggerDecoderTaskHandle);	/* Used to pass out the created task's handle. */
 }
 /*****************************************************************************/
 
@@ -315,7 +314,13 @@ float TriggerDecoder_GetRPM(void){
     // Get most recent angle
     newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
     // Get oldest angle
-    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    if(triggerStatus.lastPrimaryEventNumber >= 3){
+    	oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    }
+    else{
+    	oldestAngle = triggerStatus.primaryEventAngles[5 + (triggerStatus.lastPrimaryEventNumber)];
+    }
+
     
     // Determine delta degrees
     // If the most recent primary trigger events do not span the 720* to 0* transition, then
@@ -331,9 +336,9 @@ float TriggerDecoder_GetRPM(void){
     
 
     // Get the time of the most recent primary event
-    newestAngleTime = triggerStatus.pastPrimaryEvents[3];
+    newestAngleTime = triggerStatus.pastPrimaryEvents[0];
     // Get time of the oldest primary event
-    oldestAngleTime = triggerStatus.pastPrimaryEvents[0];
+    oldestAngleTime = triggerStatus.pastPrimaryEvents[3];
 
     // We no longer need access to the trigger status structure.
     // Return mutex for the triggerStatus structure.
@@ -351,12 +356,12 @@ float TriggerDecoder_GetRPM(void){
     // deltaAngle (degree) / deltaTime (uS);
     //
     // convert uS to seconds, then to minutes - degree per minute:
-    // deltaAngle (degree) / [ deltaTime (uS) * 1000000 * 60]
+    // [deltaAngle (degree)  * 1000000 * 60] / [ deltaTime (uS)]
     // 
     // convert degrees to revolutions - revolutions per minute:
-    // deltaAngle (degree) / [ deltaTime (uS) * 1000000 * 60 * 360]
+    // [deltaAngle (degree)  * 1000000 * 60] / [ deltaTime (uS) * 360]
     //
-    rpm = deltaAngle / (((float) deltaTime) * 1000000 * 60 * 360);
+    rpm = (deltaAngle * 1000000 * 60) / (((float) deltaTime) * 360);
     
     return rpm;
 }
@@ -391,11 +396,26 @@ float TriggerDecoder_GetCurrentAngle(void){
     // Get most recent angle
     newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
     // Get oldest angle
-    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    if(triggerStatus.lastPrimaryEventNumber >= 3){
+    	oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    }
+    else{
+    	oldestAngle = triggerStatus.primaryEventAngles[5 + (triggerStatus.lastPrimaryEventNumber)];
+    }
+
+    // Get the time of the most recent primary event
+    newestAngleTime = triggerStatus.pastPrimaryEvents[0];
+    // Get time of the oldest primary event
+    oldestAngleTime = triggerStatus.pastPrimaryEvents[3];
     
     // We no longer need access to the trigger status structure.
     // Return mutex for the triggerStatus structure.
     xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta time. This is overflow safe, as even if it spans the overflow of the uS timer
+	// beacuse the uS timer counts to 0xFFFF FFFF, subtraction in this way always results in the time
+	// between.
+	deltaTime = newestAngleTime - oldestAngleTime;
 
     // Determine delta degrees
     // If the most recent primary trigger events do not span the 720* to 0* transition, then
@@ -420,6 +440,9 @@ float TriggerDecoder_GetCurrentAngle(void){
     // 2) multiply that time by the degreesPerUS to determine how many degrees traveled since most recent event.
     // 3) add that to the angle of the most recent event to determine current angle.
     currentAngle = (((float)(currentTime - newestAngleTime)) * degreesPerUS) + newestAngle;
+    if(currentAngle >= 720){
+    	currentAngle = currentAngle - 720;
+    }
 
     return currentAngle; 
 }
@@ -453,11 +476,26 @@ float TriggerDecoder_GetUsPerDegree(void){
     // Get most recent angle
     newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
     // Get oldest angle
-    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    if(triggerStatus.lastPrimaryEventNumber >= 3){
+    	oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    }
+    else{
+    	oldestAngle = triggerStatus.primaryEventAngles[5 + (triggerStatus.lastPrimaryEventNumber)];
+    }
+
+    // Get the time of the most recent primary event
+    newestAngleTime = triggerStatus.pastPrimaryEvents[0];
+    // Get time of the oldest primary event
+    oldestAngleTime = triggerStatus.pastPrimaryEvents[3];
     
     // We no longer need access to the trigger status structure.
     // Return mutex for the triggerStatus structure.
     xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta time. This is overflow safe, as even if it spans the overflow of the uS timer
+	// beacuse the uS timer counts to 0xFFFF FFFF, subtraction in this way always results in the time
+	// between.
+	deltaTime = newestAngleTime - oldestAngleTime;
 
     // Determine delta degrees
     // If the most recent primary trigger events do not span the 720* to 0* transition, then
@@ -505,11 +543,26 @@ float TriggerDecoder_GetDegreePerUs(void){
     // Get most recent angle
     newestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber];
     // Get oldest angle
-    oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    if(triggerStatus.lastPrimaryEventNumber >= 3){
+    	oldestAngle = triggerStatus.primaryEventAngles[triggerStatus.lastPrimaryEventNumber - 3];
+    }
+    else{
+    	oldestAngle = triggerStatus.primaryEventAngles[5 + (triggerStatus.lastPrimaryEventNumber)];
+    }
+
+    // Get the time of the most recent primary event
+    newestAngleTime = triggerStatus.pastPrimaryEvents[0];
+    // Get time of the oldest primary event
+    oldestAngleTime = triggerStatus.pastPrimaryEvents[3];
     
     // We no longer need access to the trigger status structure.
     // Return mutex for the triggerStatus structure.
     xSemaphoreGive(triggerStatusMutexHandle);
+
+    // Determine delta time. This is overflow safe, as even if it spans the overflow of the uS timer
+	// beacuse the uS timer counts to 0xFFFF FFFF, subtraction in this way always results in the time
+	// between.
+	deltaTime = newestAngleTime - oldestAngleTime;
 
     // Determine delta degrees
     // If the most recent primary trigger events do not span the 720* to 0* transition, then
@@ -619,10 +672,12 @@ void EXTI3_IRQHandler(void){
     if(Gpio_ReadInputPin(CRANK_PORT, CRANK_PIN)){
         triggerEvent.eventID = PRIMARY_RISE;
         triggerEvent.primaryTriggerValue = PRIMARY_HIGH;
+        gpioOn();
     }
     else{
         triggerEvent.eventID = PRIMARY_FALL;
         triggerEvent.primaryTriggerValue = PRIMARY_LOW;
+        gpioOff();
     }
 
     // Log what the other trigger value currently is

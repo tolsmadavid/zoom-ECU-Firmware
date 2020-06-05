@@ -5,24 +5,16 @@
  * Breif Description:       Initialization for system core clocks
  *****************************************************************************/
 
-
-
-
-
 #include "stm32g4xx.h"
 #include "SystemClock.h"
 
-
-
+#define DEV_BOARD
+//#define ZOOM_BOARD
 
 #define SYSTEM_CORE_CLOCK 170000000
 
 // Deviates from standard style conventions for compatibility with existing libraries
 uint32_t SystemCoreClock = SYSTEM_CORE_CLOCK;
-
-
-
-
 
 /**
 ******************************************************************************
@@ -69,8 +61,15 @@ void SystemClock_Init(void){
     // Set PLL source to HSE oscilator
     MODIFY_REG(RCC->PLLCFGR, RCC_PLLCFGR_PLLSRC, RCC_PLLCFGR_PLLSRC_HSE);
 
-    // Set PLL M to a division of 12
-    MODIFY_REG(RCC->PLLCFGR, RCC_PLLCFGR_PLLM, (RCC_PLLCFGR_PLLM_3 | RCC_PLLCFGR_PLLM_1 | RCC_PLLCFGR_PLLM_0));
+    #ifdef ZOOM_BOARD
+        // Set PLL M to a division of 12 for zoomECU board
+        MODIFY_REG(RCC->PLLCFGR, RCC_PLLCFGR_PLLM, (RCC_PLLCFGR_PLLM_3 | RCC_PLLCFGR_PLLM_1 | RCC_PLLCFGR_PLLM_0));
+    #endif
+
+    #ifdef DEV_BOARD
+    // Set PLL M to a division of 6 for dev board
+        MODIFY_REG(RCC->PLLCFGR, RCC_PLLCFGR_PLLM, (RCC_PLLCFGR_PLLM_2 | RCC_PLLCFGR_PLLM_0));
+    #endif
 
     // Set PLL N to a multiplication of 85
     MODIFY_REG(RCC->PLLCFGR, RCC_PLLCFGR_PLLN, (85 << RCC_PLLCFGR_PLLN_Pos));
