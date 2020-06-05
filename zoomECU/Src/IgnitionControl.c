@@ -12,6 +12,7 @@
 #include "IgnitionControl.h"
 #include "TriggerDecoder.h"
 #include "Time.h"
+#include "Gpio.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -35,6 +36,8 @@
 /******************************************************************************
 * Private Function Prototypes (static)
 ******************************************************************************/
+void IgnitionControl_EventCreationTask(void * pvParameters);
+
 void testEndCallback(void);
 void testStartCallback(void);
 
@@ -90,13 +93,12 @@ void IgnitionControl_Init(void){
 
 
     // Create the trigger decoder task
-    xTaskCreate(IgnitionControl_EventCreationTask,               /* Function that implements the task. */
+    xTaskCreate(IgnitionControl_EventCreationTask,              /* Function that implements the task. */
                 "ignitionEventCreationTask",                    /* Text name for the task. */
                 100,      			                            /* Stack size in words, not bytes. */
                 ( void * ) 0,    	                            /* Parameter passed into the task. */
                 1,					                            /* Priority at which the task is created. */
-                &IgnitionControlEventCreationTaskHandle	        /* Used to pass out the created task's handle. */
-	);
+                &IgnitionControlEventCreationTaskHandle);	    /* Used to pass out the created task's handle. */
 
 }
 /*****************************************************************************/
@@ -106,7 +108,7 @@ void IgnitionControl_Init(void){
 * Creates and schedules all ignition events
 * David Tolsma, 05/25/2020
 ******************************************************************************/
-void IgnitionControl_EventCreationTask(void){
+void IgnitionControl_EventCreationTask(void * pvParameters){
 
     uint32_t bitsToClearOnExit;
     uint32_t notificationValue;
@@ -121,7 +123,7 @@ void IgnitionControl_EventCreationTask(void){
     while(1){
 
         xTaskNotifyWait(0,                  //do not clear any bits on entry
-                        &bitsToClearOnExit,
+                        bitsToClearOnExit,
                         &notificationValue,
                         portMAX_DELAY);
 
@@ -234,6 +236,10 @@ void TIM2_IRQHandler(void){
             case OFF:{
                 while(1); //should never be in IRQ with no schedule
                 break;
+            }
+            default:{
+            	while(1); //should never be in IRQ with no schedule
+				break;
             }
         }
     }

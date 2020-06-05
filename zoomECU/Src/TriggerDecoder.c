@@ -116,13 +116,12 @@ void TriggerDecoder_Init(void){
     NVIC_SetPriority(EXTI3_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
 
     // Create the trigger decoder task
-    xTaskCreate( 	TriggerDecoderTask,        	    /* Function that implements the task. */
-	                    "triggerDecoderTask",       /* Text name for the task. */
-	                    100,      			        /* Stack size in words, not bytes. */
-	                    ( void * ) 0,    	        /* Parameter passed into the task. */
-	                    1,					        /* Priority at which the task is created. */
-	                    &TriggerDecoderTaskHandle	/* Used to pass out the created task's handle. */
-	);
+    xTaskCreate( 	TriggerDecoder_Task,        	    /* Function that implements the task. */
+					"triggerDecoderTask",       /* Text name for the task. */
+					100,      			        /* Stack size in words, not bytes. */
+					( void * ) 0,    	        /* Parameter passed into the task. */
+					1,					        /* Priority at which the task is created. */
+					&TriggerDecoderTaskHandle);	/* Used to pass out the created task's handle. */
 }
 /*****************************************************************************/
 
@@ -331,9 +330,9 @@ float TriggerDecoder_GetRPM(void){
     
 
     // Get the time of the most recent primary event
-    newestAngleTime = triggerStatus.pastPrimaryEvents[3];
+    newestAngleTime = triggerStatus.pastPrimaryEvents[0];
     // Get time of the oldest primary event
-    oldestAngleTime = triggerStatus.pastPrimaryEvents[0];
+    oldestAngleTime = triggerStatus.pastPrimaryEvents[3];
 
     // We no longer need access to the trigger status structure.
     // Return mutex for the triggerStatus structure.
@@ -351,12 +350,12 @@ float TriggerDecoder_GetRPM(void){
     // deltaAngle (degree) / deltaTime (uS);
     //
     // convert uS to seconds, then to minutes - degree per minute:
-    // deltaAngle (degree) / [ deltaTime (uS) * 1000000 * 60]
+    // [deltaAngle (degree)  * 1000000 * 60] / [ deltaTime (uS)]
     // 
     // convert degrees to revolutions - revolutions per minute:
-    // deltaAngle (degree) / [ deltaTime (uS) * 1000000 * 60 * 360]
+    // [deltaAngle (degree)  * 1000000 * 60] / [ deltaTime (uS) * 360]
     //
-    rpm = deltaAngle / (((float) deltaTime) * 1000000 * 60 * 360);
+    rpm = (deltaAngle * 1000000 * 60) / (((float) deltaTime) * 360);
     
     return rpm;
 }
