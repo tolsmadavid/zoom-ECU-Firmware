@@ -115,10 +115,13 @@ void TriggerDecoder_Init(void){
     NVIC_SetPriority(EXTI1_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
     NVIC_SetPriority(EXTI3_IRQn, configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY);
 
+    // Create mutual exclusion for shared triggerStatus struct
+    triggerStatusMutexHandle = xSemaphoreCreateMutex();
+
     // Create the trigger decoder task
     xTaskCreate( 	TriggerDecoder_Task,        	    /* Function that implements the task. */
 					"triggerDecoderTask",       /* Text name for the task. */
-					100,      			        /* Stack size in words, not bytes. */
+					500,      			        /* Stack size in words, not bytes. */
 					( void * ) 0,    	        /* Parameter passed into the task. */
 					1,					        /* Priority at which the task is created. */
 					&TriggerDecoderTaskHandle);	/* Used to pass out the created task's handle. */
@@ -136,9 +139,6 @@ void TriggerDecoder_Init(void){
 void TriggerDecoder_Task(void * pvParameters){
     // Create queue for events to be passed from ISRs to this function
     triggerEventQHandle = xQueueCreate( 10, sizeof( struct triggerEvent_t) );
-    
-    // Create mutual exclusion for shared triggerStatus struct
-    triggerStatusMutexHandle = xSemaphoreCreateMutex();
     
     struct triggerEvent_t eventBeingProcessed;
 
@@ -385,6 +385,7 @@ float TriggerDecoder_GetCurrentAngle(void){
     int32_t newestAngleTime;
     int32_t oldestAngleTime;
     int32_t deltaTime;
+    int32_t status;
 
     float degreesPerUS;
     int32_t currentTime;
@@ -443,6 +444,8 @@ float TriggerDecoder_GetCurrentAngle(void){
     if(currentAngle >= 720){
     	currentAngle = currentAngle - 720;
     }
+
+
 
     return currentAngle; 
 }
@@ -598,6 +601,44 @@ float TriggerDecoder_GetSyncStatus(void){
 
 
 /******************************************************************************
+* uint32_t TriggerDecoder_IsCranking(void)
+* Determines if tthe engine is cranking or stopped.
+* David Tolsma, 05/25/2020
+******************************************************************************/
+int32_t TriggerDecoder_IsCranking(void){
+    int32_t timeBetweenEvents;
+    int32_t isCranking;
+
+    // Check to see if the decoder has sync
+    if(triggerStatus.hasSync == 1){
+        xSemaphoreTake(triggerStatusMutexHandle, portMAX_DELAY);
+        
+        // there is always 180 degrees between any 3 events
+        timeBetweenEvents = triggerStatus.pastPrimaryEvents[0] - triggerStatus.pastPrimaryEvents[2];
+
+        xSemaphoreGive(triggerStatusMutexHandle);
+        // We want to ensure that the engine is turning at least 50 RPM in order to qualify as cranking:
+        // We determine the microseconds it takes to travel 180 degrees at 50 RPM and ensure that the last
+        // 180 degrees took less time than that to happen. 
+        if (timeBetweenEvents < (600000)){
+            isCranking = 1;
+        }
+        else{
+            isCranking = 0;
+        }
+    }
+	else{
+        isCranking = 0;
+    }
+
+    return isCranking;
+}
+/*****************************************************************************/
+
+
+
+
+/******************************************************************************
 * void EXTI1_IRQHandler(void)
 * ISR handler that looks for a change on,GPIO Port B, Pin 1. When it handles
 * the interupt, it records a time stamp and the trigger values and posts that
@@ -672,12 +713,10 @@ void EXTI3_IRQHandler(void){
     if(Gpio_ReadInputPin(CRANK_PORT, CRANK_PIN)){
         triggerEvent.eventID = PRIMARY_RISE;
         triggerEvent.primaryTriggerValue = PRIMARY_HIGH;
-        gpioOn();
     }
     else{
         triggerEvent.eventID = PRIMARY_FALL;
         triggerEvent.primaryTriggerValue = PRIMARY_LOW;
-        gpioOff();
     }
 
     // Log what the other trigger value currently is

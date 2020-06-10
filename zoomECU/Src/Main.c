@@ -12,6 +12,7 @@
 #include "Time.h"
 #include "IgnitionControl.h"
 #include "TriggerDecoder.h"
+#include "EngineController.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -37,14 +38,14 @@
 * Private Function Prototypes (static)
 ******************************************************************************/
 void myTimerCallback(TimerHandle_t myTimerHandle);
+void myTimerCallback2(TimerHandle_t myTimerHandle2);
 
 /******************************************************************************
 * Private Variables (static)
 ******************************************************************************/
 TaskHandle_t TestTaskHandle = NULL;
 TimerHandle_t myTimerHandle = NULL;
-
-uint32_t angle;
+TimerHandle_t myTimerHandle2 = NULL;
 
 /******************************************************************************
 * Function Code
@@ -63,16 +64,12 @@ int main(void)
 
 	Gpio_Init();
 
+	IgnitionControl_Init();
+
+	EngineController_Init();
+
 	TriggerDecoder_Init();
 
-	myTimerHandle =  xTimerCreate
-                 	( "myTimer",
-                  	1,
-                   	pdTRUE,
-                   	(void *) 0,
-                   	myTimerCallback );
-
-	xTimerStart(myTimerHandle, 0);
 
     //xTaskCreate( 	TestTask,        	    /* Function that implements the task. */
 	//				"testTask",       /* Text name for the task. */
@@ -90,7 +87,18 @@ int main(void)
 
 void myTimerCallback(TimerHandle_t myTimerHandle)
 {
-	angle = ((uint32_t) TriggerDecoder_GetCurrentAngle());
+	//printf("Deg/uS %e \n", TriggerDecoder_GetDegreePerUs());
+	//printf("uS/Deg %e \n", TriggerDecoder_GetUsPerDegree());
+
+	// Testing purpouses
+    //xTaskNotify(IgnitionControlEventCreationTaskHandle,
+    //			(0x1UL << 0),
+    //            eSetBits);
+}
+
+void myTimerCallback2(TimerHandle_t myTimerHandle)
+{
+	//angle = TriggerDecoder_GetCurrentAngle();
 }
 
 

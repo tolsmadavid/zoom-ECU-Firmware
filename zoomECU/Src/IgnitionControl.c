@@ -19,18 +19,17 @@
 #include "timers.h"
 #include "semphr.h"
 #include "queue.h"
+#include "event_groups.h"
 
 /******************************************************************************
 * Defines
 ******************************************************************************/
-#define IGN_SCH_1  (0x1UL << 0)
-#define IGN_SCH_2  (0x1UL << 1)
-#define IGN_SCH_3  (0x1UL << 2)
-#define IGN_SCH_4  (0x1UL << 3)
+
 
 /******************************************************************************
 * Public Variables
 ******************************************************************************/
+float currentAngleGlobal;
 
 
 /******************************************************************************
@@ -61,8 +60,6 @@ struct Schedule {
 
 struct Schedule ignitionSchedule[4];
 
-TaskHandle_t IgnitionControlEventCreationTaskHandle = NULL;
-
 /******************************************************************************
 * Function Code
 ******************************************************************************/
@@ -91,15 +88,16 @@ void IgnitionControl_Init(void){
     ignitionSchedule[3].startCallback = &testStartCallback;
     ignitionSchedule[3].endCallback = &testEndCallback;
 
+    // Create ignition schedule event group
+    ignitionScheduleFinishedEventGroup = xEventGroupCreate();
 
     // Create the trigger decoder task
     xTaskCreate(IgnitionControl_EventCreationTask,              /* Function that implements the task. */
                 "ignitionEventCreationTask",                    /* Text name for the task. */
-                100,      			                            /* Stack size in words, not bytes. */
+                400,      			                            /* Stack size in words, not bytes. */
                 ( void * ) 0,    	                            /* Parameter passed into the task. */
-                1,					                            /* Priority at which the task is created. */
+                2,					                            /* Priority at which the task is created. */
                 &IgnitionControlEventCreationTaskHandle);	    /* Used to pass out the created task's handle. */
-
 }
 /*****************************************************************************/
 
@@ -112,6 +110,7 @@ void IgnitionControl_EventCreationTask(void * pvParameters){
 
     uint32_t bitsToClearOnExit;
     uint32_t notificationValue;
+    uint32_t status;
 
     float currentAngle;
     uint32_t currentTime;
@@ -119,21 +118,25 @@ void IgnitionControl_EventCreationTask(void * pvParameters){
     int32_t nextDwellTime;
     float deltaAngle;
     
+    int32_t testTime1;
+    int32_t testTime2;
 
     while(1){
 
         xTaskNotifyWait(0,                  //do not clear any bits on entry
-                        bitsToClearOnExit,
+                        0xffffffff,
                         &notificationValue,
                         portMAX_DELAY);
-
-        bitsToClearOnExit = 0;
         
         if(notificationValue & IGN_SCH_1){
-            SET_BIT(bitsToClearOnExit, IGN_SCH_1);
+
+        	testTime1 = Time_GetTimeuSeconds();
 
             nextIgnAngle = IgnitionControl_calcNextIgnitionAngle();
+
             currentAngle = TriggerDecoder_GetCurrentAngle();
+            currentAngleGlobal = currentAngle;
+
             currentTime = Time_GetTimeuSeconds();
 
             if(nextIgnAngle > currentAngle){
@@ -143,21 +146,26 @@ void IgnitionControl_EventCreationTask(void * pvParameters){
                 deltaAngle = (720 - currentAngle) + nextIgnAngle;
             }
 
+            testTime2 = Time_GetTimeuSeconds();
+
             ignitionSchedule[0].endTime = currentTime + (TriggerDecoder_GetUsPerDegree() * deltaAngle);
             ignitionSchedule[0].startTime = ignitionSchedule[0].endTime - IgnitionControl_calcDwellTime();
 
+            WRITE_REG(TIM2->CCR1, ignitionSchedule[0].startTime);
+            ignitionSchedule[0].status = PENDING;
+
+            if(ignitionSchedule[0].startTime < currentTime){
+            	while(1);
+            }
         }
 
         if(notificationValue & IGN_SCH_2){
-            SET_BIT(bitsToClearOnExit, IGN_SCH_2);
             //repeat above
         }
         if(notificationValue & IGN_SCH_3){
-            SET_BIT(bitsToClearOnExit, IGN_SCH_3);
             //repeat above
         }
         if(notificationValue & IGN_SCH_4){
-            SET_BIT(bitsToClearOnExit, IGN_SCH_4);
             //repeat above
         }   
     }
@@ -225,11 +233,10 @@ void TIM2_IRQHandler(void){
                 ignitionSchedule[x].endCallback();
                 ignitionSchedule[x].status = OFF;
 
-                // Inform the scheduler task that we need a new schedule
-                xTaskNotifyFromISR( IgnitionControlEventCreationTaskHandle,
-                                    notificationBit,
-                                    eSetBits,
-                                    &xHigherPriorityTaskWoken );
+                // Inform that the relevant ignition schedule is now off.
+                xEventGroupSetBitsFromISR(  ignitionScheduleFinishedEventGroup,      /* The event group being updated. */
+                                            notificationBit,                    /* The bits being set. */
+                                            &xHigherPriorityTaskWoken );
 
                 break;
             }
@@ -243,7 +250,7 @@ void TIM2_IRQHandler(void){
             }
         }
     }
-    else{while(1);} // Error trap, we should never get here if not interupt bits are set
+    else{while(1);} // Error trap, we should never get here if no interupt bits are set
     
     // If we have woken a higer priority task, we should yield to that task
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -264,5 +271,5 @@ float IgnitionControl_calcNextIgnitionAngle(void){
 }
 
 int32_t IgnitionControl_calcDwellTime(void){
-    return 10000; // returns a fixed dwell time of 10mS
+    return 1000; // returns a fixed dwell time of 1mS
 }

@@ -36,10 +36,10 @@
 #define PP_2_PIN (0x1UL << 5)
 #define PP_3_PIN (0x1UL << 6)
 #define PP_4_PIN (0x1UL << 7)
-#define PP_5_PIN (0x1UL << 2)
-#define PP_6_PIN (0x1UL << 3)
-#define PP_7_PIN (0x1UL << 4)
-#define PP_8_PIN (0x1UL << 5)
+#define PP_5_PIN (0x1UL << 5)
+#define PP_6_PIN (0x1UL << 4)
+#define PP_7_PIN (0x1UL << 3)
+#define PP_8_PIN (0x1UL << 2)
 
 #define PP_1_PORT GPIOB
 #define PP_2_PORT GPIOB

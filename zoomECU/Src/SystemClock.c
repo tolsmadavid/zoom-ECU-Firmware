@@ -8,8 +8,8 @@
 #include "stm32g4xx.h"
 #include "SystemClock.h"
 
-#define DEV_BOARD
-//#define ZOOM_BOARD
+//#define DEV_BOARD
+#define ZOOM_BOARD
 
 #define SYSTEM_CORE_CLOCK 170000000
 
@@ -67,7 +67,7 @@ void SystemClock_Init(void){
     #endif
 
     #ifdef DEV_BOARD
-    // Set PLL M to a division of 6 for dev board
+        // Set PLL M to a division of 6 for dev board
         MODIFY_REG(RCC->PLLCFGR, RCC_PLLCFGR_PLLM, (RCC_PLLCFGR_PLLM_2 | RCC_PLLCFGR_PLLM_0));
     #endif
 
