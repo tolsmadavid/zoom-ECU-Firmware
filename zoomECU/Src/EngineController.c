@@ -15,6 +15,8 @@
 #include "semphr.h"
 #include "queue.h"
 
+#include <stdio.h>
+
 /******************************************************************************
 * Defines
 ******************************************************************************/
@@ -61,9 +63,9 @@ void EngineController_Init(void){
     // Create the trigger decoder task
     xTaskCreate(EngineController_task,              /* Function that implements the task. */
                 "engineControllerTask",                    /* Text name for the task. */
-                500,      			                            /* Stack size in words, not bytes. */
+                200,      			                            /* Stack size in words, not bytes. */
                 ( void * ) 0,    	                            /* Parameter passed into the task. */
-                1,					                            /* Priority at which the task is created. */
+                2,					                            /* Priority at which the task is created. */
                 &EngineControllerTaskHandle);	    /* Used to pass out the created task's handle. */
 }
 
@@ -176,7 +178,7 @@ engineState_t EngineController_Cranking(void){
 engineState_t EngineController_Running(void){
     // This ensures that the state does not change unless intentially changed below
     engineState_t nextState = RUNNING;
-    int32_t tempRPM;
+    static int32_t tempRPM;
 
     tempRPM = TriggerDecoder_GetRPM();
 
@@ -193,6 +195,7 @@ engineState_t EngineController_Running(void){
                     eSetBits);
 
         tempRPM = TriggerDecoder_GetRPM();
+
     }
     
 

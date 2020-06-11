@@ -21,6 +21,8 @@
 #include "queue.h"
 #include "event_groups.h"
 
+#include <stdio.h>
+
 /******************************************************************************
 * Defines
 ******************************************************************************/
@@ -96,7 +98,7 @@ void IgnitionControl_Init(void){
                 "ignitionEventCreationTask",                    /* Text name for the task. */
                 400,      			                            /* Stack size in words, not bytes. */
                 ( void * ) 0,    	                            /* Parameter passed into the task. */
-                2,					                            /* Priority at which the task is created. */
+                3,					                            /* Priority at which the task is created. */
                 &IgnitionControlEventCreationTaskHandle);	    /* Used to pass out the created task's handle. */
 }
 /*****************************************************************************/
@@ -111,15 +113,15 @@ void IgnitionControl_EventCreationTask(void * pvParameters){
     uint32_t bitsToClearOnExit;
     uint32_t notificationValue;
     uint32_t status;
+    uint32_t endTime;
+    uint32_t startTime;
 
     float currentAngle;
     uint32_t currentTime;
     float nextIgnAngle;
-    int32_t nextDwellTime;
+    int32_t dwellTime;
     float deltaAngle;
-    
-    int32_t testTime1;
-    int32_t testTime2;
+    int32_t uSPerDegree;
 
     while(1){
 
@@ -130,32 +132,41 @@ void IgnitionControl_EventCreationTask(void * pvParameters){
         
         if(notificationValue & IGN_SCH_1){
 
-        	testTime1 = Time_GetTimeuSeconds();
-
             nextIgnAngle = IgnitionControl_calcNextIgnitionAngle();
-
             currentAngle = TriggerDecoder_GetCurrentAngle();
-            currentAngleGlobal = currentAngle;
-
             currentTime = Time_GetTimeuSeconds();
+            uSPerDegree = TriggerDecoder_GetUsPerDegree();
+            dwellTime = IgnitionControl_calcDwellTime();
 
-            if(nextIgnAngle > currentAngle){
-                deltaAngle = nextIgnAngle - currentAngle;
+            if((nextIgnAngle == -1) | (currentAngle == -1) | (uSPerDegree == -1)){
+                printf("Error: Ignition not set, failed confidence check. \n");
+                xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
+                                    IGN_SCH_1);                                /* The bits being set. */
             }
+            
             else{
-                deltaAngle = (720 - currentAngle) + nextIgnAngle;
-            }
+                if(nextIgnAngle > currentAngle){
+                deltaAngle = nextIgnAngle - currentAngle;
+                }
+                else{
+                    deltaAngle = (720 - currentAngle) + nextIgnAngle;
+                }
 
-            testTime2 = Time_GetTimeuSeconds();
+                endTime = currentTime + (uSPerDegree * deltaAngle);
+                ignitionSchedule[0].endTime = endTime;
 
-            ignitionSchedule[0].endTime = currentTime + (TriggerDecoder_GetUsPerDegree() * deltaAngle);
-            ignitionSchedule[0].startTime = ignitionSchedule[0].endTime - IgnitionControl_calcDwellTime();
+                startTime = ignitionSchedule[0].endTime - dwellTime;
+                ignitionSchedule[0].startTime = startTime;
 
-            WRITE_REG(TIM2->CCR1, ignitionSchedule[0].startTime);
-            ignitionSchedule[0].status = PENDING;
-
-            if(ignitionSchedule[0].startTime < currentTime){
-            	while(1);
+                if(startTime <= currentTime){
+					printf("Error: Ignition not set, event set in past. \n");
+					xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
+										IGN_SCH_1);                                /* The bits being set. */
+				}
+                else{
+                    WRITE_REG(TIM2->CCR1, ignitionSchedule[0].startTime);
+                    ignitionSchedule[0].status = PENDING;
+                }
             }
         }
 

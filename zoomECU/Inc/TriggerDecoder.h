@@ -70,9 +70,11 @@
     * Determines if trigger decoder is synced
     * David Tolsma, 05/25/2020
     ******************************************************************************/
-    float TriggerDecoder_GetSyncStatus(void);
+    int32_t TriggerDecoder_GetSyncStatus(void);
 
     int32_t TriggerDecoder_IsCranking(void);
+
+    int32_t TriggerDecoder_GetSyncConfidece(void);
 
 /******************************************************************************
 * Public Variables
