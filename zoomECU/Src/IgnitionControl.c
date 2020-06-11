@@ -13,6 +13,7 @@
 #include "TriggerDecoder.h"
 #include "Time.h"
 #include "Gpio.h"
+#include "PinoutConfiguration.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -39,10 +40,16 @@ float currentAngleGlobal;
 ******************************************************************************/
 void IgnitionControl_EventCreationTask(void * pvParameters);
 
-void testEndCallback(void);
-void testStartCallback(void);
+void testEndCallback1(void);
+void testStartCallback1(void);
+void testEndCallback2(void);
+void testStartCallback2(void);
+void testEndCallback3(void);
+void testStartCallback3(void);
+void testEndCallback4(void);
+void testStartCallback4(void);
 
-float IgnitionControl_calcNextIgnitionAngle(void);
+float IgnitionControl_calcNextIgnitionAngle(int32_t ignSchedule);
 int32_t IgnitionControl_calcDwellTime(void);
 
 /******************************************************************************
@@ -78,17 +85,17 @@ struct Schedule ignitionSchedule[4];
 void IgnitionControl_Init(void){
 
     // Set up callbacks for ignition schedules
-    ignitionSchedule[0].startCallback = &testStartCallback;
-    ignitionSchedule[0].endCallback = &testEndCallback;
+    ignitionSchedule[0].startCallback = &testStartCallback1;
+    ignitionSchedule[0].endCallback = &testEndCallback1;
     
-    ignitionSchedule[1].startCallback = &testStartCallback;
-    ignitionSchedule[1].endCallback = &testEndCallback;
+    ignitionSchedule[1].startCallback = &testStartCallback2;
+    ignitionSchedule[1].endCallback = &testEndCallback2;
 
-    ignitionSchedule[2].startCallback = &testStartCallback;
-    ignitionSchedule[2].endCallback = &testEndCallback;
+    ignitionSchedule[2].startCallback = &testStartCallback3;
+    ignitionSchedule[2].endCallback = &testEndCallback3;
 
-    ignitionSchedule[3].startCallback = &testStartCallback;
-    ignitionSchedule[3].endCallback = &testEndCallback;
+    ignitionSchedule[3].startCallback = &testStartCallback4;
+    ignitionSchedule[3].endCallback = &testEndCallback4;
 
     // Create ignition schedule event group
     ignitionScheduleFinishedEventGroup = xEventGroupCreate();
@@ -132,14 +139,14 @@ void IgnitionControl_EventCreationTask(void * pvParameters){
         
         if(notificationValue & IGN_SCH_1){
 
-            nextIgnAngle = IgnitionControl_calcNextIgnitionAngle();
+            nextIgnAngle = IgnitionControl_calcNextIgnitionAngle(IGN_SCH_1);
             currentAngle = TriggerDecoder_GetCurrentAngle();
             currentTime = Time_GetTimeuSeconds();
             uSPerDegree = TriggerDecoder_GetUsPerDegree();
             dwellTime = IgnitionControl_calcDwellTime();
 
             if((nextIgnAngle == -1) | (currentAngle == -1) | (uSPerDegree == -1)){
-                printf("Error: Ignition not set, failed confidence check. \n");
+                printf("Error: Ignition 1 not set, failed confidence check. \n");
                 xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
                                     IGN_SCH_1);                                /* The bits being set. */
             }
@@ -159,7 +166,7 @@ void IgnitionControl_EventCreationTask(void * pvParameters){
                 ignitionSchedule[0].startTime = startTime;
 
                 if(startTime <= currentTime){
-					printf("Error: Ignition not set, event set in past. \n");
+					printf("Error: Ignition 1 not set, event set in past. \n");
 					xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
 										IGN_SCH_1);                                /* The bits being set. */
 				}
@@ -171,13 +178,120 @@ void IgnitionControl_EventCreationTask(void * pvParameters){
         }
 
         if(notificationValue & IGN_SCH_2){
-            //repeat above
+            nextIgnAngle = IgnitionControl_calcNextIgnitionAngle(IGN_SCH_2);
+            currentAngle = TriggerDecoder_GetCurrentAngle();
+            currentTime = Time_GetTimeuSeconds();
+            uSPerDegree = TriggerDecoder_GetUsPerDegree();
+            dwellTime = IgnitionControl_calcDwellTime();
+
+            if((nextIgnAngle == -1) | (currentAngle == -1) | (uSPerDegree == -1)){
+                printf("Error: Ignition 2 not set, failed confidence check. \n");
+                xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
+                                    IGN_SCH_2);                                /* The bits being set. */
+            }
+            
+            else{
+                if(nextIgnAngle > currentAngle){
+                deltaAngle = nextIgnAngle - currentAngle;
+                }
+                else{
+                    deltaAngle = (720 - currentAngle) + nextIgnAngle;
+                }
+
+                endTime = currentTime + (uSPerDegree * deltaAngle);
+                ignitionSchedule[1].endTime = endTime;
+
+                startTime = ignitionSchedule[1].endTime - dwellTime;
+                ignitionSchedule[1].startTime = startTime;
+
+                if(startTime <= currentTime){
+					printf("Error: Ignition 2 not set, event set in past. \n");
+					xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
+										IGN_SCH_2);                                /* The bits being set. */
+				}
+                else{
+                    WRITE_REG(TIM2->CCR2, ignitionSchedule[1].startTime);
+                    ignitionSchedule[1].status = PENDING;
+                }
+            }
         }
+
         if(notificationValue & IGN_SCH_3){
-            //repeat above
+            nextIgnAngle = IgnitionControl_calcNextIgnitionAngle(IGN_SCH_3);
+            currentAngle = TriggerDecoder_GetCurrentAngle();
+            currentTime = Time_GetTimeuSeconds();
+            uSPerDegree = TriggerDecoder_GetUsPerDegree();
+            dwellTime = IgnitionControl_calcDwellTime();
+
+            if((nextIgnAngle == -1) | (currentAngle == -1) | (uSPerDegree == -1)){
+                printf("Error: Ignition 3 not set, failed confidence check. \n");
+                xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
+                                    IGN_SCH_3);                                /* The bits being set. */
+            }
+            
+            else{
+                if(nextIgnAngle > currentAngle){
+                deltaAngle = nextIgnAngle - currentAngle;
+                }
+                else{
+                    deltaAngle = (720 - currentAngle) + nextIgnAngle;
+                }
+
+                endTime = currentTime + (uSPerDegree * deltaAngle);
+                ignitionSchedule[2].endTime = endTime;
+
+                startTime = ignitionSchedule[2].endTime - dwellTime;
+                ignitionSchedule[2].startTime = startTime;
+
+                if(startTime <= currentTime){
+					printf("Error: Ignition 3 not set, event set in past. \n");
+					xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
+										IGN_SCH_3);                                /* The bits being set. */
+				}
+                else{
+                    WRITE_REG(TIM2->CCR3, ignitionSchedule[2].startTime);
+                    ignitionSchedule[2].status = PENDING;
+                }
+            }
         }
+
         if(notificationValue & IGN_SCH_4){
-            //repeat above
+            nextIgnAngle = IgnitionControl_calcNextIgnitionAngle(IGN_SCH_4);
+            currentAngle = TriggerDecoder_GetCurrentAngle();
+            currentTime = Time_GetTimeuSeconds();
+            uSPerDegree = TriggerDecoder_GetUsPerDegree();
+            dwellTime = IgnitionControl_calcDwellTime();
+
+            if((nextIgnAngle == -1) | (currentAngle == -1) | (uSPerDegree == -1)){
+                printf("Error: Ignition 4 not set, failed confidence check. \n");
+                xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
+                                    IGN_SCH_4);                                /* The bits being set. */
+            }
+            
+            else{
+                if(nextIgnAngle > currentAngle){
+                deltaAngle = nextIgnAngle - currentAngle;
+                }
+                else{
+                    deltaAngle = (720 - currentAngle) + nextIgnAngle;
+                }
+
+                endTime = currentTime + (uSPerDegree * deltaAngle);
+                ignitionSchedule[3].endTime = endTime;
+
+                startTime = ignitionSchedule[3].endTime - dwellTime;
+                ignitionSchedule[3].startTime = startTime;
+
+                if(startTime <= currentTime){
+					printf("Error: Ignition 4 not set, event set in past. \n");
+					xEventGroupSetBits( ignitionScheduleFinishedEventGroup,        /* The event group being updated. */
+										IGN_SCH_4);                                /* The bits being set. */
+				}
+                else{
+                    WRITE_REG(TIM2->CCR4, ignitionSchedule[3].startTime);
+                    ignitionSchedule[3].status = PENDING;
+                }
+            }
         }   
     }
 }
@@ -204,64 +318,143 @@ void TIM2_IRQHandler(void){
         CLEAR_BIT(TIM2->SR, TIM_SR_CC1IF);
         x = 0;
         notificationBit = IGN_SCH_1;
+
+        switch(ignitionSchedule[x].status){
+			case PENDING:{
+				ignitionSchedule[x].startCallback();
+				ignitionSchedule[x].status = RUNNING;
+				TIM2->CCR1 = ignitionSchedule[x].endTime;
+				break;
+			}
+			case RUNNING:{
+				ignitionSchedule[x].endCallback();
+				ignitionSchedule[x].status = OFF;
+
+				// Inform that the relevant ignition schedule is now off.
+				xEventGroupSetBitsFromISR(  ignitionScheduleFinishedEventGroup,      /* The event group being updated. */
+											notificationBit,                    /* The bits being set. */
+											&xHigherPriorityTaskWoken );
+
+				break;
+			}
+			case OFF:{
+				while(1); //should never be in IRQ with no schedule
+				break;
+			}
+			default:{
+				while(1); //should never be in IRQ with no schedule
+				break;
+			}
+		}
     }
 
-    else if (irqStatus & TIM_SR_CC2IF){
+    if (irqStatus & TIM_SR_CC2IF){
         CLEAR_BIT(TIM2->SR, TIM_SR_CC2IF);
         x = 1;
         notificationBit = IGN_SCH_2;
+
+        switch(ignitionSchedule[x].status){
+			case PENDING:{
+				ignitionSchedule[x].startCallback();
+				ignitionSchedule[x].status = RUNNING;
+				TIM2->CCR2 = ignitionSchedule[x].endTime;
+				break;
+			}
+			case RUNNING:{
+				ignitionSchedule[x].endCallback();
+				ignitionSchedule[x].status = OFF;
+
+				// Inform that the relevant ignition schedule is now off.
+				xEventGroupSetBitsFromISR(  ignitionScheduleFinishedEventGroup,      /* The event group being updated. */
+											notificationBit,                    /* The bits being set. */
+											&xHigherPriorityTaskWoken );
+
+				break;
+			}
+			case OFF:{
+				while(1); //should never be in IRQ with no schedule
+				break;
+			}
+			default:{
+				while(1); //should never be in IRQ with no schedule
+				break;
+			}
+        }
     }
 
-    else if (irqStatus & TIM_SR_CC3IF){
+    if (irqStatus & TIM_SR_CC3IF){
         CLEAR_BIT(TIM2->SR, TIM_SR_CC3IF);
         x = 2;
         notificationBit = IGN_SCH_3;
+
+        switch(ignitionSchedule[x].status){
+			case PENDING:{
+				ignitionSchedule[x].startCallback();
+				ignitionSchedule[x].status = RUNNING;
+				TIM2->CCR3 = ignitionSchedule[x].endTime;
+				break;
+			}
+			case RUNNING:{
+				ignitionSchedule[x].endCallback();
+				ignitionSchedule[x].status = OFF;
+
+				// Inform that the relevant ignition schedule is now off.
+				xEventGroupSetBitsFromISR(  ignitionScheduleFinishedEventGroup,      /* The event group being updated. */
+											notificationBit,                    /* The bits being set. */
+											&xHigherPriorityTaskWoken );
+
+				break;
+			}
+			case OFF:{
+				while(1); //should never be in IRQ with no schedule
+				break;
+			}
+			default:{
+				while(1); //should never be in IRQ with no schedule
+				break;
+			}
+        }
     }
     
-    else if (irqStatus & TIM_SR_CC4IF){
+    if (irqStatus & TIM_SR_CC4IF){
         CLEAR_BIT(TIM2->SR, TIM_SR_CC4IF);
         x = 3;
         notificationBit = IGN_SCH_4;
+
+        switch(ignitionSchedule[x].status){
+			case PENDING:{
+				ignitionSchedule[x].startCallback();
+				ignitionSchedule[x].status = RUNNING;
+				TIM2->CCR4 = ignitionSchedule[x].endTime;
+				break;
+			}
+			case RUNNING:{
+				ignitionSchedule[x].endCallback();
+				ignitionSchedule[x].status = OFF;
+
+				// Inform that the relevant ignition schedule is now off.
+				xEventGroupSetBitsFromISR(  ignitionScheduleFinishedEventGroup,      /* The event group being updated. */
+											notificationBit,                    /* The bits being set. */
+											&xHigherPriorityTaskWoken );
+
+				break;
+			}
+			case OFF:{
+				while(1); //should never be in IRQ with no schedule
+				break;
+			}
+			default:{
+				while(1); //should never be in IRQ with no schedule
+				break;
+			}
+        }
     }
 
     // Check for update interupts
-    else if (irqStatus & TIM_SR_UIF){
+    if (irqStatus & TIM_SR_UIF){
         CLEAR_BIT(TIM2->SR, TIM_SR_UIF);
         x = -1; // in this case, we dont want to run the state machine
     }
-
-    if (x != -1){
-        switch(ignitionSchedule[x].status){
-            case PENDING:{
-                ignitionSchedule[x].startCallback();
-                ignitionSchedule[x].status = RUNNING;
-
-                TIM2->CCR1 = ignitionSchedule[x].endTime;
-
-                break;
-            }
-            case RUNNING:{
-                ignitionSchedule[x].endCallback();
-                ignitionSchedule[x].status = OFF;
-
-                // Inform that the relevant ignition schedule is now off.
-                xEventGroupSetBitsFromISR(  ignitionScheduleFinishedEventGroup,      /* The event group being updated. */
-                                            notificationBit,                    /* The bits being set. */
-                                            &xHigherPriorityTaskWoken );
-
-                break;
-            }
-            case OFF:{
-                while(1); //should never be in IRQ with no schedule
-                break;
-            }
-            default:{
-            	while(1); //should never be in IRQ with no schedule
-				break;
-            }
-        }
-    }
-    else{while(1);} // Error trap, we should never get here if no interupt bits are set
     
     // If we have woken a higer priority task, we should yield to that task
     portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -269,16 +462,62 @@ void TIM2_IRQHandler(void){
 /*****************************************************************************/
 
 // These are test functions to act as placeholders for the real ignition GPIO calls.
-void testStartCallback(void){
-	gpioOn();
+void testStartCallback1(void){
+	Gpio_SetPin(PP_1_PORT, PP_1_PIN);
 }
 
-void testEndCallback(void){
-	gpioOff();
+void testEndCallback1(void){
+	Gpio_ResetPin(PP_1_PORT, PP_1_PIN);
 }
 
-float IgnitionControl_calcNextIgnitionAngle(void){
-    return ((float) 10); // returns a fixed angle of 10 degrees
+void testStartCallback2(void){
+	Gpio_SetPin(PP_2_PORT, PP_2_PIN);
+}
+
+void testEndCallback2(void){
+	Gpio_ResetPin(PP_2_PORT, PP_2_PIN);
+}
+
+void testStartCallback3(void){
+	Gpio_SetPin(PP_3_PORT, PP_3_PIN);
+}
+
+void testEndCallback3(void){
+	Gpio_ResetPin(PP_3_PORT, PP_3_PIN);
+}
+
+void testStartCallback4(void){
+	Gpio_SetPin(PP_4_PORT, PP_4_PIN);
+}
+
+void testEndCallback4(void){
+	Gpio_ResetPin(PP_4_PORT, PP_4_PIN);
+}
+
+float IgnitionControl_calcNextIgnitionAngle(int32_t ignSchedule){
+    float ignAngle;
+
+    switch(ignSchedule){
+        case IGN_SCH_1: {
+            ignAngle = 90;
+            break;
+        }
+        case IGN_SCH_2: {
+            ignAngle = 270;
+            break;
+        }
+        case IGN_SCH_3: {
+            ignAngle = 450;
+            break;
+        }
+        case IGN_SCH_4: {
+            ignAngle = 630;
+            break;
+        }
+        default: while(1);
+    }
+    
+    return ignAngle;
 }
 
 int32_t IgnitionControl_calcDwellTime(void){

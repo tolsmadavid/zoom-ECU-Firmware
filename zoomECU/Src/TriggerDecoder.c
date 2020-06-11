@@ -127,7 +127,7 @@ void TriggerDecoder_Init(void){
 					"triggerDecoderTask",       /* Text name for the task. */
 					500,      			        /* Stack size in words, not bytes. */
 					( void * ) 0,    	        /* Parameter passed into the task. */
-					1,					        /* Priority at which the task is created. */
+					2,					        /* Priority at which the task is created. */
 					&TriggerDecoderTaskHandle);	/* Used to pass out the created task's handle. */
 }
 /*****************************************************************************/

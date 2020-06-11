@@ -49,7 +49,7 @@ void Time_Timer2Init(void){
     // Enable clock to timer
     SET_BIT(RCC->APB1ENR1, RCC_APB1ENR1_TIM2EN);
 
-    DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM2_STOP; //enable timer 7 stop
+    DBGMCU->APB1FZR1 |= DBGMCU_APB1FZR1_DBG_TIM2_STOP; //enable timer 72 stop
 
     // Set prescaler, timer frequency = input clock / prescaler +1
     // For a 170 Mhz core, and a 1 Mhz timer, we need a prescaler value
@@ -70,10 +70,10 @@ void Time_Timer2Init(void){
     //WRITE_REG(TIM2->DIER, TIM_DIER_UIE);
 
     // Enable interupts from timer compare registers 1-4
-    WRITE_REG(TIM2->DIER, TIM_DIER_CC1IE);
-    //WRITE_REG(TIM2->DIER, TIM_DIER_CC2IE);
-    //WRITE_REG(TIM2->DIER, TIM_DIER_CC3IE);
-    //WRITE_REG(TIM2->DIER, TIM_DIER_CC4IE);
+    SET_BIT(TIM2->DIER, TIM_DIER_CC1IE);
+    SET_BIT(TIM2->DIER, TIM_DIER_CC2IE);
+    SET_BIT(TIM2->DIER, TIM_DIER_CC3IE);
+    SET_BIT(TIM2->DIER, TIM_DIER_CC4IE);
 
     // Clear all interupts
     CLEAR_REG(TIM2->SR);

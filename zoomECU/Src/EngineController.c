@@ -65,7 +65,7 @@ void EngineController_Init(void){
                 "engineControllerTask",                    /* Text name for the task. */
                 200,      			                            /* Stack size in words, not bytes. */
                 ( void * ) 0,    	                            /* Parameter passed into the task. */
-                2,					                            /* Priority at which the task is created. */
+                1,					                            /* Priority at which the task is created. */
                 &EngineControllerTaskHandle);	    /* Used to pass out the created task's handle. */
 }
 
@@ -139,27 +139,29 @@ engineState_t EngineController_Cranking(void){
     // This ensures that the state does not change unless intentially changed below
     engineState_t nextState = CRANKING;
     int32_t tempRPM;
+    int32_t ignScheduleFinished;
 
     // Since no ignition schedules have been set, we cannot pend of the ignition schedule
     // finished event group. We need to manually trigger the first schedule when transitioning
     // from OFF state to CRANKING state. 
 
     xTaskNotify(IgnitionControlEventCreationTaskHandle,
-                IGN_SCH_1,
+                IGN_SCH_1 | IGN_SCH_2 | IGN_SCH_3 | IGN_SCH_4,
                 eSetBits);
 
     tempRPM = TriggerDecoder_GetRPM();
 
     while(tempRPM > 50 & tempRPM < 500){
 
-        xEventGroupWaitBits(ignitionScheduleFinishedEventGroup,
-                            IGN_SCH_1,  // Bits to wait for
-                            pdTRUE,     // Clear bits on exit
-                            pdFALSE,    // Delay on all bits
-                            portMAX_DELAY);
+    	ignScheduleFinished = xEventGroupWaitBits(
+			ignitionScheduleFinishedEventGroup,
+			IGN_SCH_1 | IGN_SCH_2 | IGN_SCH_3 | IGN_SCH_4,  // Bits to wait for
+			pdTRUE,     									// Clear bits on exit
+			pdFALSE,    									// Delay on all bits
+			portMAX_DELAY);
 
         xTaskNotify(IgnitionControlEventCreationTaskHandle,
-                    IGN_SCH_1,
+                    (ignScheduleFinished | 0x1111),
                     eSetBits);
 
         tempRPM = TriggerDecoder_GetRPM();
@@ -179,19 +181,21 @@ engineState_t EngineController_Running(void){
     // This ensures that the state does not change unless intentially changed below
     engineState_t nextState = RUNNING;
     static int32_t tempRPM;
+    int32_t ignScheduleFinished;
 
     tempRPM = TriggerDecoder_GetRPM();
 
     while(tempRPM > 50){
 
-        xEventGroupWaitBits(ignitionScheduleFinishedEventGroup,
-                            IGN_SCH_1,  // Bits to wait for
-                            pdTRUE,     // Clear bits on exit
-                            pdFALSE,    // Delay on all bits
-                            portMAX_DELAY);
+    	ignScheduleFinished = xEventGroupWaitBits(
+			ignitionScheduleFinishedEventGroup,
+			IGN_SCH_1 | IGN_SCH_2 | IGN_SCH_3 | IGN_SCH_4,  // Bits to wait for
+			pdTRUE,     									// Clear bits on exit
+			pdFALSE,    									// Delay on all bits
+			portMAX_DELAY);
 
         xTaskNotify(IgnitionControlEventCreationTaskHandle,
-                    IGN_SCH_1,
+                    (ignScheduleFinished | 0x1111),
                     eSetBits);
 
         tempRPM = TriggerDecoder_GetRPM();
