@@ -28,11 +28,19 @@
 /******************************************************************************
 * Public Function Prototypes
 ******************************************************************************/
-void IgnitionControl_Init(void);
-
+    
+    /******************************************************************************
+    * void IgnitionControl_Init(void)
+    * Creates and schedules all ignition events
+    * David Tolsma, 05/25/2020
+    ******************************************************************************/
+    void IgnitionControl_Init(void);
+    /*****************************************************************************/
+    
 /******************************************************************************
 * Public Variables
 ******************************************************************************/
+// This is the handle to the event creation task.
 TaskHandle_t IgnitionControlEventCreationTaskHandle;
 
 // This event group is set when one of the 4 ignition schedules is cleared.

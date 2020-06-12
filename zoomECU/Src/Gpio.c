@@ -188,53 +188,65 @@ void gpio_initPin(GPIO_TypeDef *GPIOx, uint32_t Pin, uint32_t Mode, uint32_t Spe
 }
 /*****************************************************************************/
 
-void gpioOn(void){
-	//Gpio_SetPin(PP_1_PORT, PP_1_PIN);
-	//Gpio_SetPin(PP_2_PORT, PP_2_PIN);
-	//Gpio_SetPin(PP_3_PORT, PP_3_PIN);
-	//Gpio_SetPin(PP_4_PORT, PP_4_PIN);
-	//Gpio_SetPin(PP_5_PORT, PP_5_PIN);
-	//Gpio_SetPin(PP_6_PORT, PP_6_PIN);
+
+
+/******************************************************************************
+* void Gpio_Off(void)
+* Tuns off all outputs
+* David Tolsma, 05/25/2020
+******************************************************************************/
+void Gpio_On(void){
+	Gpio_SetPin(PP_1_PORT, PP_1_PIN);
+	Gpio_SetPin(PP_2_PORT, PP_2_PIN);
+	Gpio_SetPin(PP_3_PORT, PP_3_PIN);
+	Gpio_SetPin(PP_4_PORT, PP_4_PIN);
+	Gpio_SetPin(PP_5_PORT, PP_5_PIN);
+	Gpio_SetPin(PP_6_PORT, PP_6_PIN);
 	Gpio_SetPin(PP_7_PORT, PP_7_PIN);
 	Gpio_SetPin(PP_8_PORT, PP_8_PIN);
-
-	//Gpio_SetPin(LSD_1_PORT, LSD_1_PIN);
-	//Gpio_SetPin(LSD_2_PORT, LSD_2_PIN);
-	//Gpio_SetPin(LSD_3_PORT, LSD_3_PIN);
-	//Gpio_SetPin(LSD_4_PORT, LSD_4_PIN);
-	//Gpio_SetPin(LSD_5_PORT, LSD_5_PIN);
-	//Gpio_SetPin(LSD_6_PORT, LSD_6_PIN);
-	//Gpio_SetPin(LSD_7_PORT, LSD_7_PIN);
-	//Gpio_SetPin(LSD_8_PORT, LSD_8_PIN);
+	
+    Gpio_SetPin(LSD_1_PORT, LSD_1_PIN);
+	Gpio_SetPin(LSD_2_PORT, LSD_2_PIN);
+	Gpio_SetPin(LSD_3_PORT, LSD_3_PIN);
+	Gpio_SetPin(LSD_4_PORT, LSD_4_PIN);
+	Gpio_SetPin(LSD_5_PORT, LSD_5_PIN);
+	Gpio_SetPin(LSD_6_PORT, LSD_6_PIN);
+	Gpio_SetPin(LSD_7_PORT, LSD_7_PIN);
+	Gpio_SetPin(LSD_8_PORT, LSD_8_PIN);
 
 	//Gpio_SetPin(DEV_LED_PORT, DEV_LED_PIN);
 
-	//puts("Turning all outputs on. \n");
+	puts("Turning all outputs on. \n");
 
 }
+/*****************************************************************************/
 
-
-void gpioOff(void){
-	//Gpio_ResetPin(PP_1_PORT, PP_1_PIN);
-	//Gpio_ResetPin(PP_2_PORT, PP_2_PIN);
-	//Gpio_ResetPin(PP_3_PORT, PP_3_PIN);
-	//Gpio_ResetPin(PP_4_PORT, PP_4_PIN);
-	//Gpio_ResetPin(PP_5_PORT, PP_5_PIN);
-	//Gpio_ResetPin(PP_6_PORT, PP_6_PIN);
+/******************************************************************************
+* void Gpio_Off(void)
+* Tuns off all outputs
+* David Tolsma, 05/25/2020
+******************************************************************************/
+void Gpio_Off(void){
+	Gpio_ResetPin(PP_1_PORT, PP_1_PIN);
+	Gpio_ResetPin(PP_2_PORT, PP_2_PIN);
+	Gpio_ResetPin(PP_3_PORT, PP_3_PIN);
+	Gpio_ResetPin(PP_4_PORT, PP_4_PIN);
+	Gpio_ResetPin(PP_5_PORT, PP_5_PIN);
+	Gpio_ResetPin(PP_6_PORT, PP_6_PIN);
 	Gpio_ResetPin(PP_7_PORT, PP_7_PIN);
 	Gpio_ResetPin(PP_8_PORT, PP_8_PIN);
 
-	//Gpio_ResetPin(LSD_1_PORT, LSD_1_PIN);
-	//Gpio_ResetPin(LSD_2_PORT, LSD_2_PIN);
-	//Gpio_ResetPin(LSD_3_PORT, LSD_3_PIN);
-	//Gpio_ResetPin(LSD_4_PORT, LSD_4_PIN);
-	//Gpio_ResetPin(LSD_5_PORT, LSD_5_PIN);
-	//Gpio_ResetPin(LSD_6_PORT, LSD_6_PIN);
-	//Gpio_ResetPin(LSD_7_PORT, LSD_7_PIN);
-	//Gpio_ResetPin(LSD_8_PORT, LSD_8_PIN);
+	Gpio_ResetPin(LSD_1_PORT, LSD_1_PIN);
+	Gpio_ResetPin(LSD_2_PORT, LSD_2_PIN);
+	Gpio_ResetPin(LSD_3_PORT, LSD_3_PIN);
+	Gpio_ResetPin(LSD_4_PORT, LSD_4_PIN);
+	Gpio_ResetPin(LSD_5_PORT, LSD_5_PIN);
+	Gpio_ResetPin(LSD_6_PORT, LSD_6_PIN);
+	Gpio_ResetPin(LSD_7_PORT, LSD_7_PIN);
+	Gpio_ResetPin(LSD_8_PORT, LSD_8_PIN);
 
 	//Gpio_ResetPin(DEV_LED_PORT, DEV_LED_PIN);
 
-	//printf("Turning all outputs off. \n");
-
+	printf("Turning all outputs off. \n");
 }
+/*****************************************************************************/

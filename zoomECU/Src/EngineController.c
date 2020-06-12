@@ -28,11 +28,6 @@
 
 
 /******************************************************************************
-* Private Function Prototypes (static)
-******************************************************************************/
-void EngineController_task(void * pvParameters);
-
-/******************************************************************************
 * Private Variables (static)
 ******************************************************************************/
 TaskHandle_t EngineControllerTaskHandle;
@@ -44,9 +39,15 @@ typedef enum{
 } engineState_t;
 
 
+/******************************************************************************
+* Private Function Prototypes (static)
+******************************************************************************/
+void EngineController_task(void * pvParameters);
 engineState_t EngineController_Off(void);
 engineState_t EngineController_Cranking(void);
 engineState_t EngineController_Running(void);
+
+
 /******************************************************************************
 * Function Code
 ******************************************************************************/
@@ -123,6 +124,11 @@ void EngineController_task(void * pvParameters){
 /*****************************************************************************/
 
 
+/******************************************************************************
+* engineState_t EngineController_Off(void)
+* This handles OFF state logic.
+* David Tolsma, 05/25/2020
+******************************************************************************/
 engineState_t EngineController_Off(void){
     // This ensures that the state does not change unless intentially changed below
     engineState_t nextState = OFF;
@@ -131,10 +137,15 @@ engineState_t EngineController_Off(void){
     
     return nextState;
 }
+/*****************************************************************************/
 
 
 
-
+/******************************************************************************
+* engineState_t EngineController_Cranking(void)
+* This handles CRANKING state logic.
+* David Tolsma, 05/25/2020
+******************************************************************************/
 engineState_t EngineController_Cranking(void){
     // This ensures that the state does not change unless intentially changed below
     engineState_t nextState = CRANKING;
@@ -173,10 +184,15 @@ engineState_t EngineController_Cranking(void){
 
     return nextState;
 }
+/*****************************************************************************/
 
 
 
-
+/******************************************************************************
+* engineState_t EngineController_Running(void)
+* This handles RUNNING state logic.
+* David Tolsma, 05/25/2020
+******************************************************************************/
 engineState_t EngineController_Running(void){
     // This ensures that the state does not change unless intentially changed below
     engineState_t nextState = RUNNING;
@@ -207,3 +223,4 @@ engineState_t EngineController_Running(void){
 
     return nextState;
 }
+/*****************************************************************************/

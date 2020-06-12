@@ -32,7 +32,6 @@
 /******************************************************************************
 * Public Variables
 ******************************************************************************/
-float currentAngleGlobal;
 
 
 /******************************************************************************
@@ -73,9 +72,6 @@ struct Schedule ignitionSchedule[4];
 * Function Code
 ******************************************************************************/
 
-// Lets get a queue where we can post an event to schedule, and it will
-// handle everything from there. We can then make a basic test task that 
-// calls a dummy "timing scheduling" function with a fixed timing.
 
 /******************************************************************************
 * void IgnitionControl_Init(void)
@@ -109,6 +105,7 @@ void IgnitionControl_Init(void){
                 &IgnitionControlEventCreationTaskHandle);	    /* Used to pass out the created task's handle. */
 }
 /*****************************************************************************/
+
 
 /******************************************************************************
 * void IgnitionControl_EventCreationTask(void)
@@ -295,8 +292,8 @@ void IgnitionControl_EventCreationTask(void * pvParameters){
         }   
     }
 }
-
 /*****************************************************************************/
+
 
 /******************************************************************************
 * void TIM2_IRQHandler(void)
@@ -461,7 +458,67 @@ void TIM2_IRQHandler(void){
 }
 /*****************************************************************************/
 
-// These are test functions to act as placeholders for the real ignition GPIO calls.
+
+/******************************************************************************
+* float IgnitionControl_calcNextIgnitionAngle(int32_t ignSchedule)
+* 
+* This function takes an ignition shceudule input and returns a fixed ignition
+* angle as an output. It is fixed for testing purpouses, but will later dynamicly
+* change the ignition angle based on engine conditions.
+* 
+* David Tolsma, 05/25/2020
+******************************************************************************/
+float IgnitionControl_calcNextIgnitionAngle(int32_t ignSchedule){
+    float ignAngle;
+
+    switch(ignSchedule){
+        case IGN_SCH_1: {
+            ignAngle = 90;
+            break;
+        }
+        case IGN_SCH_2: {
+            ignAngle = 270;
+            break;
+        }
+        case IGN_SCH_3: {
+            ignAngle = 450;
+            break;
+        }
+        case IGN_SCH_4: {
+            ignAngle = 630;
+            break;
+        }
+        default: while(1);
+    }
+    
+    return ignAngle;
+}
+/*****************************************************************************/
+
+
+/******************************************************************************
+* int32_t IgnitionControl_calcDwellTime(void)
+* 
+* This function returns the currently needed dwell time for the ignition events.
+* It currentle returns a fixed 1ms dwell time, but will later dynamicly change
+* dwell time based on engine conditions. 
+*
+* David Tolsma, 05/25/2020
+******************************************************************************/
+int32_t IgnitionControl_calcDwellTime(void){
+    return 1000; // returns a fixed dwell time of 1mS
+}
+/*****************************************************************************/
+
+
+/******************************************************************************
+* void testStartCallbackx(void)
+* void testEndtCallbackx(void)
+* Start and stop call back functions used for testing. Thes toggle push pull
+* outputs 1-4.
+* 
+* David Tolsma, 05/25/2020
+******************************************************************************/
 void testStartCallback1(void){
 	Gpio_SetPin(PP_1_PORT, PP_1_PIN);
 }
@@ -493,33 +550,4 @@ void testStartCallback4(void){
 void testEndCallback4(void){
 	Gpio_ResetPin(PP_4_PORT, PP_4_PIN);
 }
-
-float IgnitionControl_calcNextIgnitionAngle(int32_t ignSchedule){
-    float ignAngle;
-
-    switch(ignSchedule){
-        case IGN_SCH_1: {
-            ignAngle = 90;
-            break;
-        }
-        case IGN_SCH_2: {
-            ignAngle = 270;
-            break;
-        }
-        case IGN_SCH_3: {
-            ignAngle = 450;
-            break;
-        }
-        case IGN_SCH_4: {
-            ignAngle = 630;
-            break;
-        }
-        default: while(1);
-    }
-    
-    return ignAngle;
-}
-
-int32_t IgnitionControl_calcDwellTime(void){
-    return 1000; // returns a fixed dwell time of 1mS
-}
+/*****************************************************************************/

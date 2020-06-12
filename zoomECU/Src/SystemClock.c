@@ -16,14 +16,12 @@
 // Deviates from standard style conventions for compatibility with existing libraries
 uint32_t SystemCoreClock = SYSTEM_CORE_CLOCK;
 
-/**
-******************************************************************************
+/******************************************************************************
 *   File:                    SystemClock.c
 *   Function:                void SystemClock_Init(void)
 *   Author:                  David Tolsma
 *   Breif Description:       Initialization for system core clocks
-******************************************************************************
-**/
+*****************************************************************************/
 
 void SystemClock_Init(void){
 
